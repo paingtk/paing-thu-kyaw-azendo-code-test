@@ -36,23 +36,42 @@
         </div>
       </div>
 
-      <!-- TODO: Implement product grid with pagination -->
       <div class="products-content">
         <div class="container">
-          <div v-if="loading" class="loading-container">
+          <div v-if="initialLoading" class="loading-container">
             <div class="spinner"></div>
+            <p>Loading products...</p>
           </div>
 
           <div v-else-if="error" class="alert alert-error">
             {{ error }}
           </div>
 
-          <div v-else class="products-grid">
-            <ProductCard
-              v-for="product in products"
-              :key="product.id"
-              :product="product"
-            />
+          <div v-else>
+            <div class="products-grid" ref="productsContainer">
+              <ProductCard
+                v-for="product in products"
+                :key="product.id"
+                :product="product"
+              />
+            </div>
+
+            <div v-if="loadingMore" class="loading-more">
+              <div class="spinner-small"></div>
+              <p>Loading more products...</p>
+            </div>
+
+            <div
+              v-else-if="noMoreProducts && products.length > 0"
+              class="end-message"
+            >
+              <p>You've reached the end of our product catalog!</p>
+              <p>Found {{ products.length }} products in total.</p>
+            </div>
+
+            <div v-else-if="products.length === 0" class="no-products">
+              <p>No products found.</p>
+            </div>
           </div>
         </div>
       </div>
@@ -61,37 +80,88 @@
 </template>
 
 <script setup lang="ts">
-// TODO: Implement the following functionality:
-// 1. Fetch products from API using useProducts() composable
-// 2. Implement search functionality with debouncing
-// 3. Add category, price, brand, and rating filters
-// 4. Implement pagination or infinite scroll
-// 5. Add grid/list view toggle
-// 6. Handle loading and error states
-// 7. Make it responsive for mobile devices
-
 import type { Product } from "~/types";
+import { useInfiniteScroll } from "@vueuse/core";
 
 const { getAllProducts, getCategories } = useProducts();
 const products = ref<Product[]>([]);
 const categories = ref<string[]>([]);
-const loading = ref(false);
+const initialLoading = ref(false);
+const loadingMore = ref(false);
 const error = ref<string | null>(null);
+const noMoreProducts = ref(false);
+const currentPage = ref(0);
+const itemsPerPage = 20;
 
-onMounted(async () => {
+const productsContainer = useTemplateRef<HTMLElement>("productsContainer");
+
+const loadInitialProducts = async () => {
   try {
-    loading.value = true;
+    initialLoading.value = true;
+    error.value = null;
+    currentPage.value = 0;
+    noMoreProducts.value = false;
+
     const [productsResponse, categoriesData] = await Promise.all([
-      getAllProducts({ limit: 20 }),
+      getAllProducts({
+        limit: itemsPerPage,
+        skip: 0,
+      }),
       getCategories(),
     ]);
+
     products.value = productsResponse.products;
     categories.value = categoriesData;
+
+    if (productsResponse.products.length < itemsPerPage) {
+      noMoreProducts.value = true;
+    }
+
+    currentPage.value = 1;
   } catch (err: any) {
     error.value = err.message;
   } finally {
-    loading.value = false;
+    initialLoading.value = false;
   }
+};
+
+const loadMoreProducts = async () => {
+  if (loadingMore.value || noMoreProducts.value || initialLoading.value) return;
+
+  try {
+    loadingMore.value = true;
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
+    const skip = currentPage.value * itemsPerPage;
+    const getMoreProducts = await getAllProducts({
+      limit: itemsPerPage,
+      skip,
+    });
+
+    if (getMoreProducts.products.length > 0) {
+      products.value.push(...getMoreProducts.products);
+      currentPage.value++;
+    }
+
+    if (getMoreProducts.products.length < itemsPerPage) {
+      noMoreProducts.value = true;
+    }
+  } catch (err: any) {
+    error.value = err.message;
+  } finally {
+    loadingMore.value = false;
+  }
+};
+
+useInfiniteScroll(productsContainer, loadMoreProducts, {
+  distance: 100,
+  direction: "bottom",
+  canLoadMore: () =>
+    !noMoreProducts.value && !initialLoading.value && !loadingMore.value,
+});
+
+onMounted(async () => {
+  await loadInitialProducts();
 });
 </script>
 
@@ -170,56 +240,99 @@ onMounted(async () => {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 2rem;
+  margin-bottom: 2rem;
 }
 
-.products-grid-placeholder {
-  background-color: #dbeafe;
-  border: 1px solid #3b82f6;
-  border-radius: var(--border-radius);
+/* Loading States */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+}
+
+.loading-more {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   padding: 2rem;
+  margin-top: 2rem;
+}
+
+.loading-more p {
+  margin-top: 1rem;
+  color: var(--text-light);
+}
+
+/* Spinners */
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid #f3f4f6;
+  border-top: 4px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.spinner-small {
+  width: 24px;
+  height: 24px;
+  border: 2px solid #f3f4f6;
+  border-top: 2px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* End States */
+.end-message {
   text-align: center;
+  padding: 3rem 2rem;
+  background-color: #f8fafc;
+  border-radius: var(--border-radius);
+  margin-top: 2rem;
 }
 
-.products-grid-placeholder h3 {
-  color: #1e40af;
-  margin-bottom: 1rem;
-}
-
-.products-grid-placeholder p {
-  color: #1e40af;
-  margin-bottom: 1rem;
-}
-
-.products-grid-placeholder ul {
-  color: #1e40af;
-  margin-left: 1.5rem;
-  text-align: left;
-}
-
-.products-grid-placeholder li {
+.end-message p {
+  color: var(--text-light);
   margin-bottom: 0.5rem;
 }
 
-.implementation-hints {
-  margin-top: 2rem;
-  padding-top: 2rem;
-  border-top: 1px solid #93c5fd;
-  text-align: left;
+.end-message p:last-child {
+  font-weight: 500;
+  color: var(--text-dark);
 }
 
-.implementation-hints h4 {
-  color: #1e40af;
-  margin-bottom: 1rem;
+.no-products {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: var(--text-light);
 }
 
-.implementation-hints code {
-  background-color: #f1f5f9;
-  padding: 0.125rem 0.25rem;
-  border-radius: 0.25rem;
-  font-size: 0.875rem;
-  color: #475569;
+/* Error States */
+.alert {
+  padding: 1rem;
+  border-radius: var(--border-radius);
+  margin-bottom: 2rem;
 }
 
+.alert-error {
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+}
+
+/* Responsive Design */
 @media (max-width: 768px) {
   .products-controls {
     grid-template-columns: 1fr;
@@ -233,6 +346,10 @@ onMounted(async () => {
 @media (max-width: 480px) {
   .products-grid {
     grid-template-columns: 1fr;
+  }
+
+  .products-content {
+    padding: 2rem;
   }
 }
 </style>

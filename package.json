@@ -18,6 +18,8 @@
   },
   "devDependencies": {
     "@types/node": "^24.0.12",
+    "@vueuse/core": "^13.5.0",
+    "@vueuse/nuxt": "^13.5.0",
     "typescript": "^5.8.3",
     "vue-tsc": "^2.2.12"
   }
