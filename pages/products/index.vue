@@ -5,7 +5,7 @@
         <h1>Products</h1>
         <p>Discover our wide range of products</p>
       </div>
-      
+
       <!-- TODO: Implement filters and search -->
       <div class="products-controls">
         <div class="search-section">
@@ -20,7 +20,7 @@
             </ul>
           </div>
         </div>
-        
+
         <div class="filters-section">
           <div class="filters-placeholder">
             <h3>🎛️ Filters Missing</h3>
@@ -35,30 +35,24 @@
           </div>
         </div>
       </div>
-      
+
       <!-- TODO: Implement product grid with pagination -->
       <div class="products-content">
-        <div class="products-grid-placeholder">
-          <h3>📦 Product Grid Missing</h3>
-          <p>Implement the product grid with the following features:</p>
-          <ul>
-            <li>Grid/List view toggle</li>
-            <li>Product cards with hover effects</li>
-            <li>Pagination controls</li>
-            <li>Loading states</li>
-            <li>Empty state handling</li>
-            <li>Responsive design</li>
-          </ul>
-          
-          <div class="implementation-hints">
-            <h4>Implementation Hints:</h4>
-            <ul>
-              <li>Use the <code>useProducts()</code> composable for API calls</li>
-              <li>Implement URL query parameters for filters</li>
-              <li>Use the existing <code>ProductCard</code> component</li>
-              <li>Add proper loading and error states</li>
-              <li>Consider infinite scroll or pagination</li>
-            </ul>
+        <div class="container">
+          <div v-if="loading" class="loading-container">
+            <div class="spinner"></div>
+          </div>
+
+          <div v-else-if="error" class="alert alert-error">
+            {{ error }}
+          </div>
+
+          <div v-else class="products-grid">
+            <ProductCard
+              v-for="product in products"
+              :key="product.id"
+              :product="product"
+            />
           </div>
         </div>
       </div>
@@ -76,29 +70,29 @@
 // 6. Handle loading and error states
 // 7. Make it responsive for mobile devices
 
-// Example starter code:
-// const { getAllProducts, getCategories, searchProducts } = useProducts()
-// const products = ref([])
-// const categories = ref([])
-// const loading = ref(false)
-// const error = ref(null)
+import type { Product } from "~/types";
 
-// Fetch initial data
-// onMounted(async () => {
-//   try {
-//     loading.value = true
-//     const [productsResponse, categoriesData] = await Promise.all([
-//       getAllProducts({ limit: 20 }),
-//       getCategories()
-//     ])
-//     products.value = productsResponse.products
-//     categories.value = categoriesData
-//   } catch (err) {
-//     error.value = err.message
-//   } finally {
-//     loading.value = false
-//   }
-// })
+const { getAllProducts, getCategories } = useProducts();
+const products = ref<Product[]>([]);
+const categories = ref<string[]>([]);
+const loading = ref(false);
+const error = ref<string | null>(null);
+
+onMounted(async () => {
+  try {
+    loading.value = true;
+    const [productsResponse, categoriesData] = await Promise.all([
+      getAllProducts({ limit: 20 }),
+      getCategories(),
+    ]);
+    products.value = productsResponse.products;
+    categories.value = categoriesData;
+  } catch (err: any) {
+    error.value = err.message;
+  } finally {
+    loading.value = false;
+  }
+});
 </script>
 
 <style scoped>
@@ -172,6 +166,12 @@
   box-shadow: var(--shadow-sm);
 }
 
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2rem;
+}
+
 .products-grid-placeholder {
   background-color: #dbeafe;
   border: 1px solid #3b82f6;
@@ -222,6 +222,16 @@
 
 @media (max-width: 768px) {
   .products-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .products-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .products-grid {
     grid-template-columns: 1fr;
   }
 }
