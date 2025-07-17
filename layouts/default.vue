@@ -386,6 +386,10 @@ onMounted(() => {
   transition: all 0.3s ease;
 }
 
+.mobile-menu-close {
+  display: none;
+}
+
 .app-main {
   flex: 1;
   padding-top: 2rem;
@@ -442,6 +446,7 @@ onMounted(() => {
   }
 
   .mobile-menu-close {
+    display: block;
     position: absolute;
     top: 1rem;
     right: 1.5rem;
