@@ -2,7 +2,7 @@
   <div class="products-page">
     <div class="container">
       <div class="products-header">
-        <h1>PRODUCT CATALOG PAGE</h1>
+        <h2>PRODUCT CATALOG PAGE</h2>
       </div>
 
       <div class="search-controls">
@@ -12,7 +12,46 @@
           @search="handleSearch"
           @clear="handleClearSearch"
         />
+        <div class="view-controls">
+          <div class="view-toggle">
+            <button
+              @click="viewMode = 'grid'"
+              :class="{ active: viewMode === 'grid' }"
+              class="view-btn"
+            >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <path
+                  d="M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm10 0h8v8h-8v-8z"
+                />
+              </svg>
+              Grid
+            </button>
+            <button
+              @click="viewMode = 'list'"
+              :class="{ active: viewMode === 'list' }"
+              class="view-btn"
+            >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <path
+                  d="M3 5h2v2H3V5zm4 0h14v2H7V5zm-4 4h2v2H3V9zm4 0h14v2H7V9zm-4 4h2v2H3v-2zm4 0h14v2H7v-2zm-4 4h2v2H3v-2zm4 0h14v2H7v-2z"
+                />
+              </svg>
+              List
+            </button>
+          </div>
+        </div>
       </div>
+
       <div class="filters-section">
         <div class="filters-placeholder">
           <h3>🎛️ Filters Missing</h3>
@@ -43,11 +82,16 @@
           </div>
 
           <div v-else>
-            <div class="products-grid" ref="productsContainer">
+            <div
+              class="products-container"
+              :class="`products-container--${viewMode}`"
+              ref="productsContainer"
+            >
               <ProductCard
                 v-for="product in products"
                 :key="product.id"
                 :product="product"
+                :view-mode="viewMode"
               />
             </div>
 
@@ -107,6 +151,7 @@ const noMoreProducts = ref(false);
 const currentPage = ref(0);
 const itemsPerPage = 20;
 const searchQuery = ref((route.query.q as string) || "");
+const viewMode = ref<"grid" | "list">("grid");
 
 const productsContainer = useTemplateRef<HTMLElement>("productsContainer");
 
@@ -245,7 +290,13 @@ watch(
   }
 );
 
-useInfiniteScroll(productsContainer, loadMoreProducts, {
+watch(viewMode, (newMode) => {
+  if (process.client) {
+    localStorage.setItem("viewMode", newMode);
+  }
+});
+
+useInfiniteScroll(window, loadMoreProducts, {
   distance: 100,
   direction: "bottom",
   canLoadMore: () =>
@@ -262,11 +313,73 @@ onMounted(async () => {
     await loadInitialProducts();
   }
 });
+
+onMounted(() => {
+  if (process.client) {
+    const savedViewMode = localStorage.getItem("viewMode");
+    if (savedViewMode === "grid" || savedViewMode === "list") {
+      viewMode.value = savedViewMode;
+    }
+  }
+});
 </script>
 
 <style scoped>
 .products-page {
   padding: 2rem 0;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.view-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+}
+
+.view-toggle {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.view-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid #d1d5db;
+  background: white;
+  border-radius: var(--border-radius, 0.375rem);
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.view-btn:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.view-btn.active {
+  background: var(--primary-color, #3b82f6);
+  border-color: var(--primary-color, #3b82f6);
+  color: white;
+}
+
+.products-container {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.products-container--grid {
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+}
+
+.products-container--list {
+  grid-template-columns: 1fr;
+  gap: 1rem;
 }
 
 .products-header {
