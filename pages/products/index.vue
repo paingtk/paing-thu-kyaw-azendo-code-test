@@ -12,34 +12,23 @@
           @search="handleSearch"
           @clear="handleClearSearch"
         />
-
-        <div class="filters-section">
-          <div class="filters-placeholder">
-            <h3>🎛️ Filters Missing</h3>
-            <p>Implement the following filters:</p>
-            <ul>
-              <li>Category filter (dropdown)</li>
-              <li>Price range filter (slider or inputs)</li>
-              <li>Brand filter (checkbox list)</li>
-              <li>Rating filter (star rating)</li>
-              <li>Sort options (price, rating, popularity)</li>
-            </ul>
-          </div>
+      </div>
+      <div class="filters-section">
+        <div class="filters-placeholder">
+          <h3>🎛️ Filters Missing</h3>
+          <p>Implement the following filters:</p>
+          <ul>
+            <li>Category filter (dropdown)</li>
+            <li>Price range filter (slider or inputs)</li>
+            <li>Brand filter (checkbox list)</li>
+            <li>Rating filter (star rating)</li>
+            <li>Sort options (price, rating, popularity)</li>
+          </ul>
         </div>
       </div>
 
       <div class="products-content">
         <div class="container">
-          <div v-if="searchQuery" class="search-results-header">
-            <p>
-              {{
-                searchLoading
-                  ? "Searching..."
-                  : `Found ${products.length} results for "${searchQuery}"`
-              }}
-            </p>
-          </div>
-
           <div v-if="initialLoading || searchLoading" class="loading-container">
             <div class="spinner"></div>
             <p>
@@ -307,20 +296,6 @@ onMounted(async () => {
   box-shadow: var(--shadow-sm);
 }
 
-.search-results-header {
-  margin-bottom: 1.5rem;
-  padding: 1rem;
-  background-color: #f8fafc;
-  border-radius: var(--border-radius);
-  border-left: 4px solid #3b82f6;
-}
-
-.search-results-header p {
-  margin: 0;
-  color: var(--text-dark);
-  font-weight: 500;
-}
-
 .filters-placeholder {
   background-color: #fef3c7;
   border: 1px solid #f59e0b;
@@ -387,8 +362,8 @@ onMounted(async () => {
 .spinner {
   width: 48px;
   height: 48px;
-  border: 4px solid #f3f4f6;
-  border-top: 4px solid #3b82f6;
+  border: 4px solid var(--border-color);
+  border-top: 4px solid var(--border-color);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -396,8 +371,8 @@ onMounted(async () => {
 .spinner-small {
   width: 24px;
   height: 24px;
-  border: 2px solid #f3f4f6;
-  border-top: 2px solid #3b82f6;
+  border: 2px solid var(--border-color);
+  border-top: 2px solid var(--border-color);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -414,7 +389,7 @@ onMounted(async () => {
 .end-message {
   text-align: center;
   padding: 3rem 2rem;
-  background-color: #f8fafc;
+  background-color: var(--light-color);
   border-radius: var(--border-radius);
   margin-top: 2rem;
 }
@@ -448,7 +423,7 @@ onMounted(async () => {
 .alert-error {
   background-color: #fef2f2;
   border: 1px solid #fecaca;
-  color: #dc2626;
+  color: var(--danger-color);
 }
 
 @media (max-width: 768px) {
