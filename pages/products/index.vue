@@ -6,65 +6,25 @@
       </div>
 
       <div class="search-controls">
-        <div class="search-section">
-          <div class="search-container">
-            <div class="search-input-wrapper">
-              <input
-                v-model="searchQuery"
-                type="text"
-                placeholder="Search products..."
-                class="search-input"
-                @input="handleSearchInput"
-                @keydown.enter="performSearch"
-              />
-              <div class="search-actions">
-                <button
-                  v-if="searchQuery"
-                  @click="clearSearch"
-                  class="clear-button"
-                  type="button"
-                >
-                  ✕
-                </button>
-                <button
-                  @click="performSearch"
-                  class="search-button"
-                  type="button"
-                >
-                  🔍
-                </button>
-              </div>
-            </div>
+        <SearchBar
+          v-model="searchQuery"
+          :loading="searchLoading"
+          @search="handleSearch"
+          @clear="handleClearSearch"
+        />
 
-            <!-- Search Suggestions -->
-            <div
-              v-if="showSuggestions && searchSuggestions.length > 0"
-              class="search-suggestions"
-            >
-              <div
-                v-for="suggestion in searchSuggestions"
-                :key="suggestion"
-                @click="selectSuggestion(suggestion)"
-                class="suggestion-item"
-              >
-                {{ suggestion }}
-              </div>
-            </div>
+        <div class="filters-section">
+          <div class="filters-placeholder">
+            <h3>🎛️ Filters Missing</h3>
+            <p>Implement the following filters:</p>
+            <ul>
+              <li>Category filter (dropdown)</li>
+              <li>Price range filter (slider or inputs)</li>
+              <li>Brand filter (checkbox list)</li>
+              <li>Rating filter (star rating)</li>
+              <li>Sort options (price, rating, popularity)</li>
+            </ul>
           </div>
-        </div>
-      </div>
-
-      <div class="filters-section">
-        <div class="filters-placeholder">
-          <h3>🎛️ Filters Missing</h3>
-          <p>Implement the following filters:</p>
-          <ul>
-            <li>Category filter (dropdown)</li>
-            <li>Price range filter (slider or inputs)</li>
-            <li>Brand filter (checkbox list)</li>
-            <li>Rating filter (star rating)</li>
-            <li>Sort options (price, rating, popularity)</li>
-          </ul>
         </div>
       </div>
 
@@ -144,6 +104,7 @@
 <script setup lang="ts">
 import type { Product } from "~/types";
 import { useInfiniteScroll } from "@vueuse/core";
+import SearchBar from "~/components/SearchBar.vue";
 
 const { getAllProducts, getCategories, searchProducts } = useProducts();
 const products = ref<Product[]>([]);
@@ -156,99 +117,22 @@ const noMoreProducts = ref(false);
 const currentPage = ref(0);
 const itemsPerPage = 20;
 const searchQuery = ref("");
-const searchSuggestions = ref<string[]>([]);
-const showSuggestions = ref(false);
-const searchTimeout = ref<NodeJS.Timeout | null>(null);
-const recentSearches = ref<string[]>([]);
 
 const productsContainer = useTemplateRef<HTMLElement>("productsContainer");
 
-onMounted(() => {
-  const stored = localStorage?.getItem("recentSearches");
-  if (stored) {
-    try {
-      recentSearches.value = JSON.parse(stored);
-    } catch (e) {
-      console.error("Failed to parse recent searches from localStorage", e);
-      recentSearches.value = [];
-    }
-  }
-});
-
-const saveRecentSearch = (query: string) => {
-  if (query && !recentSearches.value.includes(query)) {
-    recentSearches.value.unshift(query);
-    recentSearches.value = recentSearches.value.slice(0, 5);
-    localStorage?.setItem(
-      "recentSearches",
-      JSON.stringify(recentSearches.value)
-    );
-  }
+const handleSearch = async (query: string) => {
+  searchQuery.value = query;
+  await performSearch();
 };
 
-const generateSuggestions = async (query: string) => {
-  if (!query || query.length < 2) {
-    searchSuggestions.value = recentSearches.value;
-    return;
-  }
-
-  const suggestions = [
-    ...recentSearches.value.filter((search) =>
-      search.toLowerCase().includes(query.toLowerCase())
-    ),
-    ...[
-      "laptop",
-      "smartphone",
-      "headphones",
-      "camera",
-      "watch",
-      "shoes",
-      "clothing",
-      "books",
-      "electronics",
-      "home",
-    ].filter(
-      (term) =>
-        term.toLowerCase().includes(query.toLowerCase()) &&
-        !recentSearches.value.includes(term)
-    ),
-  ];
-
-  searchSuggestions.value = [...new Set(suggestions)].slice(0, 5);
-};
-
-const handleSearchInput = async () => {
-  showSuggestions.value = true;
-
-  if (searchTimeout.value) {
-    clearTimeout(searchTimeout.value);
-  }
-  await generateSuggestions(searchQuery.value);
-
-  searchTimeout.value = setTimeout(() => {
-    if (searchQuery.value.trim()) {
-      performSearch();
-    } else {
-      loadInitialProducts();
-    }
-  }, 300);
-};
-
-const selectSuggestion = (suggestion: string) => {
-  searchQuery.value = suggestion;
-  showSuggestions.value = false;
-  performSearch();
-};
-
-const clearSearch = () => {
+const handleClearSearch = async () => {
   searchQuery.value = "";
-  showSuggestions.value = false;
-  loadInitialProducts();
+  await loadInitialProducts();
 };
 
 const performSearch = async () => {
   if (!searchQuery.value.trim()) {
-    loadInitialProducts();
+    await loadInitialProducts();
     return;
   }
 
@@ -257,7 +141,6 @@ const performSearch = async () => {
     error.value = null;
     currentPage.value = 0;
     noMoreProducts.value = false;
-    showSuggestions.value = false;
 
     const searchResponse = await searchProducts(searchQuery.value.trim(), {
       limit: itemsPerPage,
@@ -265,7 +148,6 @@ const performSearch = async () => {
     });
 
     products.value = searchResponse.products;
-    saveRecentSearch(searchQuery.value.trim());
 
     if (searchResponse.products.length < itemsPerPage) {
       noMoreProducts.value = true;
@@ -352,13 +234,6 @@ const loadMoreProducts = async () => {
   }
 };
 
-const handleClickOutside = (event: Event) => {
-  const target = event.target as HTMLElement;
-  if (!target.closest(".search-container")) {
-    showSuggestions.value = false;
-  }
-};
-
 useInfiniteScroll(productsContainer, loadMoreProducts, {
   distance: 100,
   direction: "bottom",
@@ -371,14 +246,6 @@ useInfiniteScroll(productsContainer, loadMoreProducts, {
 
 onMounted(async () => {
   await loadInitialProducts();
-  document.addEventListener("click", handleClickOutside);
-});
-
-onUnmounted(() => {
-  document.removeEventListener("click", handleClickOutside);
-  if (searchTimeout.value) {
-    clearTimeout(searchTimeout.value);
-  }
 });
 </script>
 
@@ -407,102 +274,11 @@ onUnmounted(() => {
   margin-bottom: 3rem;
 }
 
-.search-section,
 .filters-section {
   background-color: white;
   border-radius: var(--border-radius);
   padding: 2rem;
   box-shadow: var(--shadow-sm);
-}
-
-.search-container {
-  position: relative;
-}
-
-.search-input-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-  background-color: #f9fafb;
-  border: 1px solid #d1d5db;
-  border-radius: var(--border-radius);
-  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-}
-
-.search-input-wrapper:focus-within {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-.search-input {
-  flex: 1;
-  padding: 0.75rem 1rem;
-  border: none;
-  background: transparent;
-  font-size: 1rem;
-  outline: none;
-}
-
-.search-input::placeholder {
-  color: #9ca3af;
-}
-
-.search-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding-right: 0.75rem;
-}
-
-.clear-button,
-.search-button {
-  padding: 0.5rem;
-  border: none;
-  background: none;
-  cursor: pointer;
-  border-radius: 4px;
-  transition: background-color 0.15s ease-in-out;
-  font-size: 0.875rem;
-}
-
-.clear-button:hover {
-  background-color: #f3f4f6;
-  color: #dc2626;
-}
-
-.search-button:hover {
-  background-color: #f3f4f6;
-  color: #3b82f6;
-}
-
-.search-suggestions {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  background: white;
-  border: 1px solid #d1d5db;
-  border-top: none;
-  border-radius: 0 0 var(--border-radius) var(--border-radius);
-  box-shadow: var(--shadow-sm);
-  z-index: 50;
-  max-height: 200px;
-  overflow-y: auto;
-}
-
-.suggestion-item {
-  padding: 0.75rem 1rem;
-  cursor: pointer;
-  border-bottom: 1px solid #f3f4f6;
-  transition: background-color 0.15s ease-in-out;
-}
-
-.suggestion-item:hover {
-  background-color: #f9fafb;
-}
-
-.suggestion-item:last-child {
-  border-bottom: none;
 }
 
 .search-results-header {
