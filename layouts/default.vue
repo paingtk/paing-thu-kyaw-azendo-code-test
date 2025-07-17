@@ -7,34 +7,84 @@
             <NuxtLink to="/" class="logo">
               <h1>E-Store</h1>
             </NuxtLink>
-            
-            <div class="nav-menu" :class="{ 'active': mobileMenuOpen }">
-              <NuxtLink to="/" class="nav-link" @click="closeMobileMenu">Home</NuxtLink>
-              <NuxtLink to="/products" class="nav-link" @click="closeMobileMenu">Products</NuxtLink>
-              <NuxtLink to="/categories" class="nav-link" @click="closeMobileMenu">Categories</NuxtLink>
-              
+
+            <div class="nav-menu" :class="{ active: mobileMenuOpen }">
+              <button
+                class="mobile-menu-close"
+                @click="closeMobileMenu"
+                aria-label="Close Menu"
+              >
+                &times;
+              </button>
+              <NuxtLink to="/" class="nav-link" @click="closeMobileMenu"
+                >Home</NuxtLink
+              >
+              <NuxtLink to="/products" class="nav-link" @click="closeMobileMenu"
+                >Products</NuxtLink
+              >
+              <NuxtLink
+                to="/categories"
+                class="nav-link"
+                @click="closeMobileMenu"
+                >Categories</NuxtLink
+              >
+
               <div class="nav-actions">
-                <NuxtLink to="/cart" class="nav-icon-link" @click="closeMobileMenu">
+                <NuxtLink
+                  to="/cart"
+                  class="nav-icon-link"
+                  @click="closeMobileMenu"
+                >
                   <CartIcon />
-                  <span v-if="cartItemCount > 0" class="cart-badge">{{ cartItemCount }}</span>
+                  <span v-if="cartItemCount > 0" class="cart-badge">{{
+                    cartItemCount
+                  }}</span>
                 </NuxtLink>
-                
+
                 <div v-if="isAuthenticated" class="user-menu">
                   <button @click="toggleUserDropdown" class="user-button">
-                    <img v-if="user?.image" :src="user.image" :alt="user.firstName" class="user-avatar">
+                    <img
+                      v-if="user?.image"
+                      :src="user.image"
+                      :alt="user.firstName"
+                      class="user-avatar"
+                    />
                     <UserIcon v-else />
                   </button>
                   <div v-if="userDropdownOpen" class="dropdown-menu">
-                    <NuxtLink to="/profile" class="dropdown-item" @click="closeDropdowns">Profile</NuxtLink>
-                    <NuxtLink to="/orders" class="dropdown-item" @click="closeDropdowns">Orders</NuxtLink>
-                    <NuxtLink to="/dashboard" class="dropdown-item" @click="closeDropdowns">Dashboard</NuxtLink>
-                    <button @click="logout" class="dropdown-item">Logout</button>
+                    <NuxtLink
+                      to="/profile"
+                      class="dropdown-item"
+                      @click="closeDropdowns"
+                      >Profile</NuxtLink
+                    >
+                    <NuxtLink
+                      to="/orders"
+                      class="dropdown-item"
+                      @click="closeDropdowns"
+                      >Orders</NuxtLink
+                    >
+                    <NuxtLink
+                      to="/dashboard"
+                      class="dropdown-item"
+                      @click="closeDropdowns"
+                      >Dashboard</NuxtLink
+                    >
+                    <button @click="logout" class="dropdown-item">
+                      Logout
+                    </button>
                   </div>
                 </div>
-                <NuxtLink v-else to="/login" class="btn btn-primary" @click="closeMobileMenu">Login</NuxtLink>
+                <NuxtLink
+                  v-else
+                  to="/login"
+                  class="btn btn-primary"
+                  @click="closeMobileMenu"
+                  >Login</NuxtLink
+                >
               </div>
             </div>
-            
+
             <button class="mobile-menu-toggle" @click="toggleMobileMenu">
               <span></span>
               <span></span>
@@ -54,7 +104,10 @@
         <div class="footer-content">
           <div class="footer-section">
             <h3>About E-Store</h3>
-            <p>Your one-stop shop for all your needs. Quality products, great prices, excellent service.</p>
+            <p>
+              Your one-stop shop for all your needs. Quality products, great
+              prices, excellent service.
+            </p>
           </div>
           <div class="footer-section">
             <h3>Quick Links</h3>
@@ -88,78 +141,96 @@
 </template>
 
 <script setup lang="ts">
-import { storeToRefs } from 'pinia'
+import { storeToRefs } from "pinia";
 
-const authStore = useAuthStore()
-const cartStore = useCartStore()
-const { isAuthenticated, user } = storeToRefs(authStore)
-const { itemCount: cartItemCount } = storeToRefs(cartStore)
+const authStore = useAuthStore();
+const cartStore = useCartStore();
+const { isAuthenticated, user } = storeToRefs(authStore);
+const { itemCount: cartItemCount } = storeToRefs(cartStore);
 
-const mobileMenuOpen = ref(false)
-const userDropdownOpen = ref(false)
+const mobileMenuOpen = ref(false);
+const userDropdownOpen = ref(false);
 
 const toggleMobileMenu = () => {
-  mobileMenuOpen.value = !mobileMenuOpen.value
-}
+  mobileMenuOpen.value = !mobileMenuOpen.value;
+};
 
 const closeMobileMenu = () => {
-  mobileMenuOpen.value = false
-}
+  mobileMenuOpen.value = false;
+};
 
 const toggleUserDropdown = () => {
-  userDropdownOpen.value = !userDropdownOpen.value
-}
+  userDropdownOpen.value = !userDropdownOpen.value;
+};
 
 const closeDropdowns = () => {
-  userDropdownOpen.value = false
-  mobileMenuOpen.value = false
-}
+  userDropdownOpen.value = false;
+  mobileMenuOpen.value = false;
+};
 
 const logout = async () => {
-  await authStore.logout()
-  closeDropdowns()
-}
+  await authStore.logout();
+  closeDropdowns();
+};
 
 // Icons as components
-const CartIcon = () => h('svg', { 
-  width: '24', 
-  height: '24', 
-  viewBox: '0 0 24 24', 
-  fill: 'none', 
-  stroke: 'currentColor' 
-}, [
-  h('path', { 
-    d: 'M9 2L6 6H3L5 20H19L21 6H18L15 2H9Z',
-    'stroke-width': '2',
-    'stroke-linecap': 'round',
-    'stroke-linejoin': 'round'
-  })
-])
+const CartIcon = () =>
+  h(
+    "svg",
+    {
+      width: "24",
+      height: "24",
+      viewBox: "0 0 24 24",
+      fill: "none",
+      stroke: "currentColor",
+    },
+    [
+      h("path", {
+        d: "M9 2L6 6H3L5 20H19L21 6H18L15 2H9Z",
+        "stroke-width": "2",
+        "stroke-linecap": "round",
+        "stroke-linejoin": "round",
+      }),
+    ]
+  );
 
-const UserIcon = () => h('svg', {
-  width: '24',
-  height: '24',
-  viewBox: '0 0 24 24',
-  fill: 'none',
-  stroke: 'currentColor'
-}, [
-  h('circle', { cx: '12', cy: '7', r: '4', 'stroke-width': '2' }),
-  h('path', { 
-    d: 'M4 21V17C4 15.9 4.9 15 6 15H18C19.1 15 20 15.9 20 17V21',
-    'stroke-width': '2',
-    'stroke-linecap': 'round'
-  })
-])
+const UserIcon = () =>
+  h(
+    "svg",
+    {
+      width: "24",
+      height: "24",
+      viewBox: "0 0 24 24",
+      fill: "none",
+      stroke: "currentColor",
+    },
+    [
+      h("circle", { cx: "12", cy: "7", r: "4", "stroke-width": "2" }),
+      h("path", {
+        d: "M4 21V17C4 15.9 4.9 15 6 15H18C19.1 15 20 15.9 20 17V21",
+        "stroke-width": "2",
+        "stroke-linecap": "round",
+      }),
+    ]
+  );
+
+watch(mobileMenuOpen, (open) => {
+  if (open) {
+    document.body.style.overflow = "hidden";
+  } else {
+    document.body.style.overflow = "";
+  }
+});
 
 // Close dropdowns on click outside
 onMounted(() => {
-  document.addEventListener('click', (e) => {
-    const target = e.target as HTMLElement
-    if (!target.closest('.user-menu')) {
-      userDropdownOpen.value = false
+  document.addEventListener("click", (e) => {
+    const target = e.target as HTMLElement;
+    if (!target.closest(".user-menu")) {
+      userDropdownOpen.value = false;
     }
-  })
-})
+  });
+});
 </script>
 
 <style scoped>
@@ -369,7 +440,19 @@ onMounted(() => {
   .mobile-menu-toggle {
     display: flex;
   }
-  
+
+  .mobile-menu-close {
+    position: absolute;
+    top: 1rem;
+    right: 1.5rem;
+    background: none;
+    border: none;
+    font-size: 2rem;
+    color: var(--text-color);
+    cursor: pointer;
+    z-index: 10;
+  }
+
   .nav-menu {
     position: fixed;
     top: 0;
@@ -380,18 +463,18 @@ onMounted(() => {
     flex-direction: column;
     padding: 2rem;
     transition: left 0.3s ease;
+    overflow: hidden;
   }
-  
-  /* Bug: This should be .nav-menu.active but missing the active state toggle */
-  .nav-menu {
-    left: -100%;
+
+  .nav-menu.active {
+    left: 0;
   }
-  
+
   .nav-actions {
     flex-direction: column;
     width: 100%;
   }
-  
+
   .footer-content {
     grid-template-columns: repeat(2, 1fr);
   }
