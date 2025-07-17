@@ -107,6 +107,7 @@ import { useInfiniteScroll } from "@vueuse/core";
 import SearchBar from "~/components/SearchBar.vue";
 
 const { getAllProducts, getCategories, searchProducts } = useProducts();
+const route = useRoute();
 const products = ref<Product[]>([]);
 const categories = ref<string[]>([]);
 const initialLoading = ref(false);
@@ -116,17 +117,23 @@ const error = ref<string | null>(null);
 const noMoreProducts = ref(false);
 const currentPage = ref(0);
 const itemsPerPage = 20;
-const searchQuery = ref("");
+const searchQuery = ref((route.query.q as string) || "");
 
 const productsContainer = useTemplateRef<HTMLElement>("productsContainer");
 
 const handleSearch = async (query: string) => {
   searchQuery.value = query;
+  await navigateTo({
+    query: { ...route.query, q: query },
+  });
   await performSearch();
 };
 
 const handleClearSearch = async () => {
   searchQuery.value = "";
+  const newQuery = { ...route.query };
+  delete newQuery.q;
+  await navigateTo({ query: newQuery });
   await loadInitialProducts();
 };
 
@@ -234,6 +241,21 @@ const loadMoreProducts = async () => {
   }
 };
 
+watch(
+  () => route.query.q,
+  async (newQuery) => {
+    const queryString = (newQuery as string) || "";
+    if (queryString !== searchQuery.value) {
+      searchQuery.value = queryString;
+      if (queryString) {
+        await performSearch();
+      } else {
+        await loadInitialProducts();
+      }
+    }
+  }
+);
+
 useInfiniteScroll(productsContainer, loadMoreProducts, {
   distance: 100,
   direction: "bottom",
@@ -245,7 +267,11 @@ useInfiniteScroll(productsContainer, loadMoreProducts, {
 });
 
 onMounted(async () => {
-  await loadInitialProducts();
+  if (searchQuery.value) {
+    await performSearch();
+  } else {
+    await loadInitialProducts();
+  }
 });
 </script>
 
