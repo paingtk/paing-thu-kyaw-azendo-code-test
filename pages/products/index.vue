@@ -2,45 +2,91 @@
   <div class="products-page">
     <div class="container">
       <div class="products-header">
-        <h1>Products</h1>
-        <p>Discover our wide range of products</p>
+        <h1>PRODUCT CATALOG PAGE</h1>
       </div>
 
-      <!-- TODO: Implement filters and search -->
-      <div class="products-controls">
+      <div class="search-controls">
         <div class="search-section">
-          <div class="search-placeholder">
-            <h3>🔍 Search Functionality Missing</h3>
-            <p>Implement search input with the following features:</p>
-            <ul>
-              <li>Search by product title</li>
-              <li>Real-time search with debouncing</li>
-              <li>Search suggestions</li>
-              <li>Clear search functionality</li>
-            </ul>
+          <div class="search-container">
+            <div class="search-input-wrapper">
+              <input
+                v-model="searchQuery"
+                type="text"
+                placeholder="Search products..."
+                class="search-input"
+                @input="handleSearchInput"
+                @keydown.enter="performSearch"
+              />
+              <div class="search-actions">
+                <button
+                  v-if="searchQuery"
+                  @click="clearSearch"
+                  class="clear-button"
+                  type="button"
+                >
+                  ✕
+                </button>
+                <button
+                  @click="performSearch"
+                  class="search-button"
+                  type="button"
+                >
+                  🔍
+                </button>
+              </div>
+            </div>
+
+            <!-- Search Suggestions -->
+            <div
+              v-if="showSuggestions && searchSuggestions.length > 0"
+              class="search-suggestions"
+            >
+              <div
+                v-for="suggestion in searchSuggestions"
+                :key="suggestion"
+                @click="selectSuggestion(suggestion)"
+                class="suggestion-item"
+              >
+                {{ suggestion }}
+              </div>
+            </div>
           </div>
         </div>
+      </div>
 
-        <div class="filters-section">
-          <div class="filters-placeholder">
-            <h3>🎛️ Filters Missing</h3>
-            <p>Implement the following filters:</p>
-            <ul>
-              <li>Category filter (dropdown)</li>
-              <li>Price range filter (slider or inputs)</li>
-              <li>Brand filter (checkbox list)</li>
-              <li>Rating filter (star rating)</li>
-              <li>Sort options (price, rating, popularity)</li>
-            </ul>
-          </div>
+      <div class="filters-section">
+        <div class="filters-placeholder">
+          <h3>🎛️ Filters Missing</h3>
+          <p>Implement the following filters:</p>
+          <ul>
+            <li>Category filter (dropdown)</li>
+            <li>Price range filter (slider or inputs)</li>
+            <li>Brand filter (checkbox list)</li>
+            <li>Rating filter (star rating)</li>
+            <li>Sort options (price, rating, popularity)</li>
+          </ul>
         </div>
       </div>
 
       <div class="products-content">
         <div class="container">
-          <div v-if="initialLoading" class="loading-container">
+          <div v-if="searchQuery" class="search-results-header">
+            <p>
+              {{
+                searchLoading
+                  ? "Searching..."
+                  : `Found ${products.length} results for "${searchQuery}"`
+              }}
+            </p>
+          </div>
+
+          <div v-if="initialLoading || searchLoading" class="loading-container">
             <div class="spinner"></div>
-            <p>Loading products...</p>
+            <p>
+              {{
+                searchQuery ? "Searching products..." : "Loading products..."
+              }}
+            </p>
           </div>
 
           <div v-else-if="error" class="alert alert-error">
@@ -65,12 +111,28 @@
               v-else-if="noMoreProducts && products.length > 0"
               class="end-message"
             >
-              <p>You've reached the end of our product catalog!</p>
+              <p>
+                You've reached the end
+                {{
+                  searchQuery
+                    ? "of your search results"
+                    : "of our product catalog"
+                }}!
+              </p>
               <p>Found {{ products.length }} products in total.</p>
             </div>
 
             <div v-else-if="products.length === 0" class="no-products">
-              <p>No products found.</p>
+              <p>
+                {{
+                  searchQuery
+                    ? `No products found for "${searchQuery}".`
+                    : "No products found."
+                }}
+              </p>
+              <p v-if="searchQuery">
+                Try different keywords or check your spelling.
+              </p>
             </div>
           </div>
         </div>
@@ -83,17 +145,139 @@
 import type { Product } from "~/types";
 import { useInfiniteScroll } from "@vueuse/core";
 
-const { getAllProducts, getCategories } = useProducts();
+const { getAllProducts, getCategories, searchProducts } = useProducts();
 const products = ref<Product[]>([]);
 const categories = ref<string[]>([]);
 const initialLoading = ref(false);
 const loadingMore = ref(false);
+const searchLoading = ref(false);
 const error = ref<string | null>(null);
 const noMoreProducts = ref(false);
 const currentPage = ref(0);
 const itemsPerPage = 20;
+const searchQuery = ref("");
+const searchSuggestions = ref<string[]>([]);
+const showSuggestions = ref(false);
+const searchTimeout = ref<NodeJS.Timeout | null>(null);
+const recentSearches = ref<string[]>([]);
 
 const productsContainer = useTemplateRef<HTMLElement>("productsContainer");
+
+onMounted(() => {
+  const stored = localStorage?.getItem("recentSearches");
+  if (stored) {
+    try {
+      recentSearches.value = JSON.parse(stored);
+    } catch (e) {
+      console.error("Failed to parse recent searches from localStorage", e);
+      recentSearches.value = [];
+    }
+  }
+});
+
+const saveRecentSearch = (query: string) => {
+  if (query && !recentSearches.value.includes(query)) {
+    recentSearches.value.unshift(query);
+    recentSearches.value = recentSearches.value.slice(0, 5);
+    localStorage?.setItem(
+      "recentSearches",
+      JSON.stringify(recentSearches.value)
+    );
+  }
+};
+
+const generateSuggestions = async (query: string) => {
+  if (!query || query.length < 2) {
+    searchSuggestions.value = recentSearches.value;
+    return;
+  }
+
+  const suggestions = [
+    ...recentSearches.value.filter((search) =>
+      search.toLowerCase().includes(query.toLowerCase())
+    ),
+    ...[
+      "laptop",
+      "smartphone",
+      "headphones",
+      "camera",
+      "watch",
+      "shoes",
+      "clothing",
+      "books",
+      "electronics",
+      "home",
+    ].filter(
+      (term) =>
+        term.toLowerCase().includes(query.toLowerCase()) &&
+        !recentSearches.value.includes(term)
+    ),
+  ];
+
+  searchSuggestions.value = [...new Set(suggestions)].slice(0, 5);
+};
+
+const handleSearchInput = async () => {
+  showSuggestions.value = true;
+
+  if (searchTimeout.value) {
+    clearTimeout(searchTimeout.value);
+  }
+  await generateSuggestions(searchQuery.value);
+
+  searchTimeout.value = setTimeout(() => {
+    if (searchQuery.value.trim()) {
+      performSearch();
+    } else {
+      loadInitialProducts();
+    }
+  }, 300);
+};
+
+const selectSuggestion = (suggestion: string) => {
+  searchQuery.value = suggestion;
+  showSuggestions.value = false;
+  performSearch();
+};
+
+const clearSearch = () => {
+  searchQuery.value = "";
+  showSuggestions.value = false;
+  loadInitialProducts();
+};
+
+const performSearch = async () => {
+  if (!searchQuery.value.trim()) {
+    loadInitialProducts();
+    return;
+  }
+
+  try {
+    searchLoading.value = true;
+    error.value = null;
+    currentPage.value = 0;
+    noMoreProducts.value = false;
+    showSuggestions.value = false;
+
+    const searchResponse = await searchProducts(searchQuery.value.trim(), {
+      limit: itemsPerPage,
+      skip: 0,
+    });
+
+    products.value = searchResponse.products;
+    saveRecentSearch(searchQuery.value.trim());
+
+    if (searchResponse.products.length < itemsPerPage) {
+      noMoreProducts.value = true;
+    }
+
+    currentPage.value = 1;
+  } catch (err: any) {
+    error.value = err.message;
+  } finally {
+    searchLoading.value = false;
+  }
+};
 
 const loadInitialProducts = async () => {
   try {
@@ -126,24 +310,39 @@ const loadInitialProducts = async () => {
 };
 
 const loadMoreProducts = async () => {
-  if (loadingMore.value || noMoreProducts.value || initialLoading.value) return;
+  if (
+    loadingMore.value ||
+    noMoreProducts.value ||
+    initialLoading.value ||
+    searchLoading.value
+  )
+    return;
 
   try {
     loadingMore.value = true;
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     const skip = currentPage.value * itemsPerPage;
-    const getMoreProducts = await getAllProducts({
-      limit: itemsPerPage,
-      skip,
-    });
 
-    if (getMoreProducts.products.length > 0) {
-      products.value.push(...getMoreProducts.products);
+    let moreProductsResponse;
+    if (searchQuery.value.trim()) {
+      moreProductsResponse = await searchProducts(searchQuery.value.trim(), {
+        limit: itemsPerPage,
+        skip,
+      });
+    } else {
+      moreProductsResponse = await getAllProducts({
+        limit: itemsPerPage,
+        skip,
+      });
+    }
+
+    if (moreProductsResponse.products.length > 0) {
+      products.value.push(...moreProductsResponse.products);
       currentPage.value++;
     }
 
-    if (getMoreProducts.products.length < itemsPerPage) {
+    if (moreProductsResponse.products.length < itemsPerPage) {
       noMoreProducts.value = true;
     }
   } catch (err: any) {
@@ -153,15 +352,33 @@ const loadMoreProducts = async () => {
   }
 };
 
+const handleClickOutside = (event: Event) => {
+  const target = event.target as HTMLElement;
+  if (!target.closest(".search-container")) {
+    showSuggestions.value = false;
+  }
+};
+
 useInfiniteScroll(productsContainer, loadMoreProducts, {
   distance: 100,
   direction: "bottom",
   canLoadMore: () =>
-    !noMoreProducts.value && !initialLoading.value && !loadingMore.value,
+    !noMoreProducts.value &&
+    !initialLoading.value &&
+    !loadingMore.value &&
+    !searchLoading.value,
 });
 
 onMounted(async () => {
   await loadInitialProducts();
+  document.addEventListener("click", handleClickOutside);
+});
+
+onUnmounted(() => {
+  document.removeEventListener("click", handleClickOutside);
+  if (searchTimeout.value) {
+    clearTimeout(searchTimeout.value);
+  }
 });
 </script>
 
@@ -183,9 +400,9 @@ onMounted(async () => {
   color: var(--text-light);
 }
 
-.products-controls {
+.search-controls {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 2fr 1fr;
   gap: 2rem;
   margin-bottom: 3rem;
 }
@@ -198,7 +415,110 @@ onMounted(async () => {
   box-shadow: var(--shadow-sm);
 }
 
-.search-placeholder,
+.search-container {
+  position: relative;
+}
+
+.search-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background-color: #f9fafb;
+  border: 1px solid #d1d5db;
+  border-radius: var(--border-radius);
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.search-input-wrapper:focus-within {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.search-input {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: none;
+  background: transparent;
+  font-size: 1rem;
+  outline: none;
+}
+
+.search-input::placeholder {
+  color: #9ca3af;
+}
+
+.search-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-right: 0.75rem;
+}
+
+.clear-button,
+.search-button {
+  padding: 0.5rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.15s ease-in-out;
+  font-size: 0.875rem;
+}
+
+.clear-button:hover {
+  background-color: #f3f4f6;
+  color: #dc2626;
+}
+
+.search-button:hover {
+  background-color: #f3f4f6;
+  color: #3b82f6;
+}
+
+.search-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-top: none;
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
+  box-shadow: var(--shadow-sm);
+  z-index: 50;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.suggestion-item {
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  border-bottom: 1px solid #f3f4f6;
+  transition: background-color 0.15s ease-in-out;
+}
+
+.suggestion-item:hover {
+  background-color: #f9fafb;
+}
+
+.suggestion-item:last-child {
+  border-bottom: none;
+}
+
+.search-results-header {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background-color: #f8fafc;
+  border-radius: var(--border-radius);
+  border-left: 4px solid #3b82f6;
+}
+
+.search-results-header p {
+  margin: 0;
+  color: var(--text-dark);
+  font-weight: 500;
+}
+
 .filters-placeholder {
   background-color: #fef3c7;
   border: 1px solid #f59e0b;
@@ -206,25 +526,21 @@ onMounted(async () => {
   padding: 1.5rem;
 }
 
-.search-placeholder h3,
 .filters-placeholder h3 {
   color: #92400e;
   margin-bottom: 1rem;
 }
 
-.search-placeholder p,
 .filters-placeholder p {
   color: #92400e;
   margin-bottom: 1rem;
 }
 
-.search-placeholder ul,
 .filters-placeholder ul {
   color: #92400e;
   margin-left: 1.5rem;
 }
 
-.search-placeholder li,
 .filters-placeholder li {
   margin-bottom: 0.5rem;
 }
@@ -266,7 +582,6 @@ onMounted(async () => {
   color: var(--text-light);
 }
 
-/* Spinners */
 .spinner {
   width: 48px;
   height: 48px;
@@ -294,7 +609,6 @@ onMounted(async () => {
   }
 }
 
-/* End States */
 .end-message {
   text-align: center;
   padding: 3rem 2rem;
@@ -319,7 +633,10 @@ onMounted(async () => {
   color: var(--text-light);
 }
 
-/* Error States */
+.no-products p {
+  margin-bottom: 0.5rem;
+}
+
 .alert {
   padding: 1rem;
   border-radius: var(--border-radius);
@@ -332,9 +649,8 @@ onMounted(async () => {
   color: #dc2626;
 }
 
-/* Responsive Design */
 @media (max-width: 768px) {
-  .products-controls {
+  .search-controls {
     grid-template-columns: 1fr;
   }
 
