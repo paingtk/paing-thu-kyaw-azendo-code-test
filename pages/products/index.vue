@@ -53,17 +53,12 @@
       </div>
 
       <div class="filters-section">
-        <div class="filters-placeholder">
-          <h3>🎛️ Filters Missing</h3>
-          <p>Implement the following filters:</p>
-          <ul>
-            <li>Category filter (dropdown)</li>
-            <li>Price range filter (slider or inputs)</li>
-            <li>Brand filter (checkbox list)</li>
-            <li>Rating filter (star rating)</li>
-            <li>Sort options (price, rating, popularity)</li>
-          </ul>
-        </div>
+        <ProductFilter
+          v-model="selectedCategory"
+          :categories="categories"
+          :disabled="initialLoading"
+          @change="handleCategoryChange"
+        />
       </div>
 
       <div class="products-content">
@@ -138,8 +133,11 @@
 import type { Product } from "~/types";
 import { useInfiniteScroll } from "@vueuse/core";
 import SearchBar from "~/components/SearchBar.vue";
+import ProductFilter from "~/components/ProductFilter.vue";
 
-const { getAllProducts, getCategories, searchProducts } = useProducts();
+const { getAllProducts, getCategories, searchProducts, getProductsByCategory } =
+  useProducts();
+
 const route = useRoute();
 const products = ref<Product[]>([]);
 const categories = ref<string[]>([]);
@@ -152,6 +150,7 @@ const currentPage = ref(0);
 const itemsPerPage = 20;
 const searchQuery = ref((route.query.q as string) || "");
 const viewMode = ref<"grid" | "list">("grid");
+const selectedCategory = ref("");
 
 const productsContainer = useTemplateRef<HTMLElement>("productsContainer");
 
@@ -169,6 +168,41 @@ const handleClearSearch = async () => {
   delete newQuery.q;
   await navigateTo({ query: newQuery });
   await loadInitialProducts();
+};
+
+const handleCategoryChange = async () => {
+  products.value = [];
+  error.value = null;
+  initialLoading.value = true;
+  currentPage.value = 0;
+  noMoreProducts.value = false;
+
+  await navigateTo({
+    query: {
+      ...route.query,
+      category: selectedCategory.value || undefined,
+    },
+  });
+
+  let productsResponse;
+  if (selectedCategory.value) {
+    productsResponse = await getProductsByCategory(selectedCategory.value, {
+      limit: itemsPerPage,
+      skip: 0,
+    });
+  } else {
+    productsResponse = await getAllProducts({
+      limit: itemsPerPage,
+      skip: 0,
+    });
+  }
+
+  products.value = productsResponse.products;
+  if (productsResponse.products.length < itemsPerPage) {
+    noMoreProducts.value = true;
+  }
+  currentPage.value = 1;
+  initialLoading.value = false;
 };
 
 const performSearch = async () => {
@@ -218,7 +252,7 @@ const loadInitialProducts = async () => {
     ]);
 
     products.value = productsResponse.products;
-    categories.value = categoriesData;
+    categories.value = categoriesData.map((category: any) => category.name);
 
     if (productsResponse.products.length < itemsPerPage) {
       noMoreProducts.value = true;

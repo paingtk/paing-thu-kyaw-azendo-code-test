@@ -112,8 +112,6 @@ const addToCart = () => {
 }
 
 .product-card--list .product-image {
-  width: 150px;
-  min-width: 150px;
   padding-top: 0;
   height: auto;
   aspect-ratio: 1;
