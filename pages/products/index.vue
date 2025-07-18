@@ -57,7 +57,11 @@
           v-model="selectedCategory"
           :categories="categories"
           :disabled="initialLoading"
-          @change="handleCategoryChange"
+          :minPrice="minPrice"
+          :maxPrice="maxPrice"
+          @update:minPrice="minPrice = $event"
+          @update:maxPrice="maxPrice = $event"
+          @change="handleFilterChange"
         />
       </div>
 
@@ -151,6 +155,8 @@ const itemsPerPage = 20;
 const searchQuery = ref((route.query.q as string) || "");
 const viewMode = ref<"grid" | "list">("grid");
 const selectedCategory = ref("");
+const minPrice = ref();
+const maxPrice = ref();
 
 const productsContainer = useTemplateRef<HTMLElement>("productsContainer");
 
@@ -170,19 +176,21 @@ const handleClearSearch = async () => {
   await loadInitialProducts();
 };
 
-const handleCategoryChange = async () => {
+const handleFilterChange = async () => {
+  await navigateTo({
+    query: {
+      ...route.query,
+      category: selectedCategory.value || undefined,
+      minPrice: minPrice.value,
+      maxPrice: maxPrice.value,
+    },
+  });
+
   products.value = [];
   error.value = null;
   initialLoading.value = true;
   currentPage.value = 0;
   noMoreProducts.value = false;
-
-  await navigateTo({
-    query: {
-      ...route.query,
-      category: selectedCategory.value || undefined,
-    },
-  });
 
   let productsResponse;
   if (selectedCategory.value) {
@@ -197,8 +205,17 @@ const handleCategoryChange = async () => {
     });
   }
 
-  products.value = productsResponse.products;
-  if (productsResponse.products.length < itemsPerPage) {
+  let filteredProducts = productsResponse.products;
+
+  if (minPrice.value > 0 || maxPrice.value < 500) {
+    filteredProducts = productsResponse.products.filter((product) => {
+      const price = product.price;
+      return price >= minPrice.value && price <= maxPrice.value;
+    });
+  }
+
+  products.value = filteredProducts;
+  if (filteredProducts.length < itemsPerPage) {
     noMoreProducts.value = true;
   }
   currentPage.value = 1;
