@@ -61,9 +61,11 @@
           :maxPrice="filterState.maxPrice"
           :brands="brands"
           :selectedBrands="filterState.selectedBrands"
+          :minRating="filterState.minRating"
           @update:minPrice="filterState.minPrice = $event"
           @update:maxPrice="filterState.maxPrice = $event"
           @update:selectedBrands="filterState.selectedBrands = $event"
+          @update:minRating="filterState.minRating = $event"
           @change="handleFilterChange"
         />
       </div>
@@ -162,6 +164,7 @@ const filterState = ref({
   minPrice: 0,
   maxPrice: 500,
   selectedBrands: [] as string[],
+  minRating: 0,
 });
 const brands = ref<string[]>([
   "Apple",
@@ -172,6 +175,25 @@ const brands = ref<string[]>([
 ]);
 
 const productsContainer = useTemplateRef<HTMLElement>("productsContainer");
+
+onMounted(() => {
+  const query = route.query;
+  if (query.category) {
+    filterState.value.selectedCategory = query.category as string;
+  }
+  if (query.minPrice) {
+    filterState.value.minPrice = Number(query.minPrice);
+  }
+  if (query.maxPrice) {
+    filterState.value.maxPrice = Number(query.maxPrice);
+  }
+  if (query.brands) {
+    filterState.value.selectedBrands = (query.brands as string).split(",");
+  }
+  if (query.minRating) {
+    filterState.value.minRating = Number(query.minRating);
+  }
+});
 
 const handleSearch = async (query: string) => {
   searchQuery.value = query;
@@ -194,11 +216,15 @@ const handleFilterChange = async () => {
     query: {
       ...route.query,
       category: filterState.value.selectedCategory || undefined,
-      minPrice: filterState.value.minPrice,
-      maxPrice: filterState.value.maxPrice,
+      minPrice: filterState.value.minPrice || undefined,
+      maxPrice:
+        filterState.value.maxPrice !== 500
+          ? filterState.value.maxPrice
+          : undefined,
       brands: filterState.value.selectedBrands.length
         ? filterState.value.selectedBrands.join(",")
         : undefined,
+      minRating: filterState.value.minRating || undefined,
     },
   });
 
@@ -227,7 +253,7 @@ const handleFilterChange = async () => {
   let filteredProducts = productsResponse.products;
 
   if (filterState.value.minPrice > 0 || filterState.value.maxPrice < 500) {
-    filteredProducts = productsResponse.products.filter((product) => {
+    filteredProducts = filteredProducts.filter((product) => {
       const price = product.price;
       return (
         price >= filterState.value.minPrice &&
@@ -239,6 +265,12 @@ const handleFilterChange = async () => {
   if (filterState.value.selectedBrands.length > 0) {
     filteredProducts = filteredProducts.filter((product) =>
       filterState.value.selectedBrands.includes(product.brand)
+    );
+  }
+
+  if (filterState.value.minRating > 0) {
+    filteredProducts = filteredProducts.filter(
+      (product) => product.rating >= filterState.value.minRating
     );
   }
 
@@ -267,9 +299,33 @@ const performSearch = async () => {
       skip: 0,
     });
 
-    products.value = searchResponse.products;
+    let filteredProducts = searchResponse.products;
 
-    if (searchResponse.products.length < itemsPerPage) {
+    if (filterState.value.minPrice > 0 || filterState.value.maxPrice < 500) {
+      filteredProducts = filteredProducts.filter((product) => {
+        const price = product.price;
+        return (
+          price >= filterState.value.minPrice &&
+          price <= filterState.value.maxPrice
+        );
+      });
+    }
+
+    if (filterState.value.selectedBrands.length > 0) {
+      filteredProducts = filteredProducts.filter((product) =>
+        filterState.value.selectedBrands.includes(product.brand)
+      );
+    }
+
+    if (filterState.value.minRating > 0) {
+      filteredProducts = filteredProducts.filter(
+        (product) => product.rating >= filterState.value.minRating
+      );
+    }
+
+    products.value = filteredProducts;
+
+    if (filteredProducts.length < itemsPerPage) {
       noMoreProducts.value = true;
     }
 
@@ -296,10 +352,34 @@ const loadInitialProducts = async () => {
       getCategories(),
     ]);
 
-    products.value = productsResponse.products;
+    let filteredProducts = productsResponse.products;
+
+    if (filterState.value.minPrice > 0 || filterState.value.maxPrice < 500) {
+      filteredProducts = filteredProducts.filter((product) => {
+        const price = product.price;
+        return (
+          price >= filterState.value.minPrice &&
+          price <= filterState.value.maxPrice
+        );
+      });
+    }
+
+    if (filterState.value.selectedBrands.length > 0) {
+      filteredProducts = filteredProducts.filter((product) =>
+        filterState.value.selectedBrands.includes(product.brand)
+      );
+    }
+
+    if (filterState.value.minRating > 0) {
+      filteredProducts = filteredProducts.filter(
+        (product) => product.rating >= filterState.value.minRating
+      );
+    }
+
+    products.value = filteredProducts;
     categories.value = categoriesData.map((category: any) => category.name);
 
-    if (productsResponse.products.length < itemsPerPage) {
+    if (filteredProducts.length < itemsPerPage) {
       noMoreProducts.value = true;
     }
 
@@ -339,12 +419,36 @@ const loadMoreProducts = async () => {
       });
     }
 
-    if (moreProductsResponse.products.length > 0) {
-      products.value.push(...moreProductsResponse.products);
+    let filteredProducts = moreProductsResponse.products;
+
+    if (filterState.value.minPrice > 0 || filterState.value.maxPrice < 500) {
+      filteredProducts = filteredProducts.filter((product) => {
+        const price = product.price;
+        return (
+          price >= filterState.value.minPrice &&
+          price <= filterState.value.maxPrice
+        );
+      });
+    }
+
+    if (filterState.value.selectedBrands.length > 0) {
+      filteredProducts = filteredProducts.filter((product) =>
+        filterState.value.selectedBrands.includes(product.brand)
+      );
+    }
+
+    if (filterState.value.minRating > 0) {
+      filteredProducts = filteredProducts.filter(
+        (product) => product.rating >= filterState.value.minRating
+      );
+    }
+
+    if (filteredProducts.length > 0) {
+      products.value.push(...filteredProducts);
       currentPage.value++;
     }
 
-    if (moreProductsResponse.products.length < itemsPerPage) {
+    if (filteredProducts.length < itemsPerPage) {
       noMoreProducts.value = true;
     }
   } catch (err: any) {
