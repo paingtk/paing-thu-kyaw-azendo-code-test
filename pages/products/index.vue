@@ -146,8 +146,8 @@ import ProductFilter from "~/components/ProductFilter.vue";
 
 const { getAllProducts, getCategories, searchProducts, getProductsByCategory } =
   useProducts();
-
 const route = useRoute();
+
 const products = ref<Product[]>([]);
 const categories = ref<string[]>([]);
 const initialLoading = ref(false);
@@ -176,24 +176,84 @@ const brands = ref<string[]>([
 
 const productsContainer = useTemplateRef<HTMLElement>("productsContainer");
 
-onMounted(() => {
+const applyFilters = (productList: Product[]): Product[] => {
+  let filtered = productList;
+
+  if (filterState.value.minPrice > 0 || filterState.value.maxPrice < 500) {
+    filtered = filtered.filter((product) => {
+      const price = product.price;
+      return (
+        price >= filterState.value.minPrice &&
+        price <= filterState.value.maxPrice
+      );
+    });
+  }
+
+  if (filterState.value.selectedBrands.length > 0) {
+    filtered = filtered.filter((product) =>
+      filterState.value.selectedBrands.includes(product.brand)
+    );
+  }
+
+  if (filterState.value.minRating > 0) {
+    filtered = filtered.filter(
+      (product) => product.rating >= filterState.value.minRating
+    );
+  }
+
+  return filtered;
+};
+
+const resetPagination = () => {
+  products.value = [];
+  error.value = null;
+  currentPage.value = 0;
+  noMoreProducts.value = false;
+};
+
+const updateNoMoreProducts = (filteredProducts: Product[]) => {
+  if (filteredProducts.length < itemsPerPage) {
+    noMoreProducts.value = true;
+  }
+};
+
+const initializeFromQuery = () => {
   const query = route.query;
-  if (query.category) {
+
+  if (query.category)
     filterState.value.selectedCategory = query.category as string;
-  }
-  if (query.minPrice) {
-    filterState.value.minPrice = Number(query.minPrice);
-  }
-  if (query.maxPrice) {
-    filterState.value.maxPrice = Number(query.maxPrice);
-  }
-  if (query.brands) {
+  if (query.minPrice) filterState.value.minPrice = Number(query.minPrice);
+  if (query.maxPrice) filterState.value.maxPrice = Number(query.maxPrice);
+  if (query.brands)
     filterState.value.selectedBrands = (query.brands as string).split(",");
-  }
-  if (query.minRating) {
-    filterState.value.minRating = Number(query.minRating);
-  }
+  if (query.minRating) filterState.value.minRating = Number(query.minRating);
+};
+
+const buildQueryParams = () => ({
+  ...route.query,
+  category: filterState.value.selectedCategory || undefined,
+  minPrice: filterState.value.minPrice || undefined,
+  maxPrice:
+    filterState.value.maxPrice !== 500 ? filterState.value.maxPrice : undefined,
+  brands: filterState.value.selectedBrands.length
+    ? filterState.value.selectedBrands.join(",")
+    : undefined,
+  minRating: filterState.value.minRating || undefined,
 });
+
+const fetchProducts = async (skip = 0) => {
+  if (filterState.value.selectedCategory) {
+    return await getProductsByCategory(filterState.value.selectedCategory, {
+      limit: itemsPerPage,
+      skip,
+    });
+  } else {
+    return await getAllProducts({
+      limit: itemsPerPage,
+      skip,
+    });
+  }
+};
 
 const handleSearch = async (query: string) => {
   searchQuery.value = query;
@@ -212,74 +272,23 @@ const handleClearSearch = async () => {
 };
 
 const handleFilterChange = async () => {
-  await navigateTo({
-    query: {
-      ...route.query,
-      category: filterState.value.selectedCategory || undefined,
-      minPrice: filterState.value.minPrice || undefined,
-      maxPrice:
-        filterState.value.maxPrice !== 500
-          ? filterState.value.maxPrice
-          : undefined,
-      brands: filterState.value.selectedBrands.length
-        ? filterState.value.selectedBrands.join(",")
-        : undefined,
-      minRating: filterState.value.minRating || undefined,
-    },
-  });
+  await navigateTo({ query: buildQueryParams() });
 
-  products.value = [];
-  error.value = null;
+  resetPagination();
   initialLoading.value = true;
-  currentPage.value = 0;
-  noMoreProducts.value = false;
 
-  let productsResponse;
-  if (filterState.value.selectedCategory) {
-    productsResponse = await getProductsByCategory(
-      filterState.value.selectedCategory,
-      {
-        limit: itemsPerPage,
-        skip: 0,
-      }
-    );
-  } else {
-    productsResponse = await getAllProducts({
-      limit: itemsPerPage,
-      skip: 0,
-    });
+  try {
+    const productsResponse = await fetchProducts(0);
+    const filteredProducts = applyFilters(productsResponse.products);
+
+    products.value = filteredProducts;
+    updateNoMoreProducts(filteredProducts);
+    currentPage.value = 1;
+  } catch (err: any) {
+    error.value = err.message;
+  } finally {
+    initialLoading.value = false;
   }
-
-  let filteredProducts = productsResponse.products;
-
-  if (filterState.value.minPrice > 0 || filterState.value.maxPrice < 500) {
-    filteredProducts = filteredProducts.filter((product) => {
-      const price = product.price;
-      return (
-        price >= filterState.value.minPrice &&
-        price <= filterState.value.maxPrice
-      );
-    });
-  }
-
-  if (filterState.value.selectedBrands.length > 0) {
-    filteredProducts = filteredProducts.filter((product) =>
-      filterState.value.selectedBrands.includes(product.brand)
-    );
-  }
-
-  if (filterState.value.minRating > 0) {
-    filteredProducts = filteredProducts.filter(
-      (product) => product.rating >= filterState.value.minRating
-    );
-  }
-
-  products.value = filteredProducts;
-  if (filteredProducts.length < itemsPerPage) {
-    noMoreProducts.value = true;
-  }
-  currentPage.value = 1;
-  initialLoading.value = false;
 };
 
 const performSearch = async () => {
@@ -290,45 +299,16 @@ const performSearch = async () => {
 
   try {
     searchLoading.value = true;
-    error.value = null;
-    currentPage.value = 0;
-    noMoreProducts.value = false;
+    resetPagination();
 
     const searchResponse = await searchProducts(searchQuery.value.trim(), {
       limit: itemsPerPage,
       skip: 0,
     });
 
-    let filteredProducts = searchResponse.products;
-
-    if (filterState.value.minPrice > 0 || filterState.value.maxPrice < 500) {
-      filteredProducts = filteredProducts.filter((product) => {
-        const price = product.price;
-        return (
-          price >= filterState.value.minPrice &&
-          price <= filterState.value.maxPrice
-        );
-      });
-    }
-
-    if (filterState.value.selectedBrands.length > 0) {
-      filteredProducts = filteredProducts.filter((product) =>
-        filterState.value.selectedBrands.includes(product.brand)
-      );
-    }
-
-    if (filterState.value.minRating > 0) {
-      filteredProducts = filteredProducts.filter(
-        (product) => product.rating >= filterState.value.minRating
-      );
-    }
-
+    const filteredProducts = applyFilters(searchResponse.products);
     products.value = filteredProducts;
-
-    if (filteredProducts.length < itemsPerPage) {
-      noMoreProducts.value = true;
-    }
-
+    updateNoMoreProducts(filteredProducts);
     currentPage.value = 1;
   } catch (err: any) {
     error.value = err.message;
@@ -340,49 +320,17 @@ const performSearch = async () => {
 const loadInitialProducts = async () => {
   try {
     initialLoading.value = true;
-    error.value = null;
-    currentPage.value = 0;
-    noMoreProducts.value = false;
+    resetPagination();
 
     const [productsResponse, categoriesData] = await Promise.all([
-      getAllProducts({
-        limit: itemsPerPage,
-        skip: 0,
-      }),
+      fetchProducts(0),
       getCategories(),
     ]);
 
-    let filteredProducts = productsResponse.products;
-
-    if (filterState.value.minPrice > 0 || filterState.value.maxPrice < 500) {
-      filteredProducts = filteredProducts.filter((product) => {
-        const price = product.price;
-        return (
-          price >= filterState.value.minPrice &&
-          price <= filterState.value.maxPrice
-        );
-      });
-    }
-
-    if (filterState.value.selectedBrands.length > 0) {
-      filteredProducts = filteredProducts.filter((product) =>
-        filterState.value.selectedBrands.includes(product.brand)
-      );
-    }
-
-    if (filterState.value.minRating > 0) {
-      filteredProducts = filteredProducts.filter(
-        (product) => product.rating >= filterState.value.minRating
-      );
-    }
-
+    const filteredProducts = applyFilters(productsResponse.products);
     products.value = filteredProducts;
     categories.value = categoriesData.map((category: any) => category.name);
-
-    if (filteredProducts.length < itemsPerPage) {
-      noMoreProducts.value = true;
-    }
-
+    updateNoMoreProducts(filteredProducts);
     currentPage.value = 1;
   } catch (err: any) {
     error.value = err.message;
@@ -392,13 +340,12 @@ const loadInitialProducts = async () => {
 };
 
 const loadMoreProducts = async () => {
-  if (
+  const noProducts =
     loadingMore.value ||
     noMoreProducts.value ||
     initialLoading.value ||
-    searchLoading.value
-  )
-    return;
+    searchLoading.value;
+  if (noProducts) return;
 
   try {
     loadingMore.value = true;
@@ -413,44 +360,17 @@ const loadMoreProducts = async () => {
         skip,
       });
     } else {
-      moreProductsResponse = await getAllProducts({
-        limit: itemsPerPage,
-        skip,
-      });
+      moreProductsResponse = await fetchProducts(skip);
     }
 
-    let filteredProducts = moreProductsResponse.products;
-
-    if (filterState.value.minPrice > 0 || filterState.value.maxPrice < 500) {
-      filteredProducts = filteredProducts.filter((product) => {
-        const price = product.price;
-        return (
-          price >= filterState.value.minPrice &&
-          price <= filterState.value.maxPrice
-        );
-      });
-    }
-
-    if (filterState.value.selectedBrands.length > 0) {
-      filteredProducts = filteredProducts.filter((product) =>
-        filterState.value.selectedBrands.includes(product.brand)
-      );
-    }
-
-    if (filterState.value.minRating > 0) {
-      filteredProducts = filteredProducts.filter(
-        (product) => product.rating >= filterState.value.minRating
-      );
-    }
+    const filteredProducts = applyFilters(moreProductsResponse.products);
 
     if (filteredProducts.length > 0) {
       products.value.push(...filteredProducts);
       currentPage.value++;
     }
 
-    if (filteredProducts.length < itemsPerPage) {
-      noMoreProducts.value = true;
-    }
+    updateNoMoreProducts(filteredProducts);
   } catch (err: any) {
     error.value = err.message;
   } finally {
@@ -490,19 +410,19 @@ useInfiniteScroll(window, loadMoreProducts, {
 });
 
 onMounted(async () => {
-  if (searchQuery.value) {
-    await performSearch();
-  } else {
-    await loadInitialProducts();
-  }
-});
+  initializeFromQuery();
 
-onMounted(() => {
-  if (process.client) {
+  if (import.meta.client) {
     const savedViewMode = localStorage.getItem("viewMode");
     if (savedViewMode === "grid" || savedViewMode === "list") {
       viewMode.value = savedViewMode;
     }
+  }
+
+  if (searchQuery.value) {
+    await performSearch();
+  } else {
+    await loadInitialProducts();
   }
 });
 </script>
