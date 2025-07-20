@@ -54,13 +54,16 @@
 
       <div class="filters-section">
         <ProductFilter
-          v-model="selectedCategory"
+          v-model="filterState.selectedCategory"
           :categories="categories"
           :disabled="initialLoading"
-          :minPrice="minPrice"
-          :maxPrice="maxPrice"
-          @update:minPrice="minPrice = $event"
-          @update:maxPrice="maxPrice = $event"
+          :minPrice="filterState.minPrice"
+          :maxPrice="filterState.maxPrice"
+          :brands="brands"
+          :selectedBrands="filterState.selectedBrands"
+          @update:minPrice="filterState.minPrice = $event"
+          @update:maxPrice="filterState.maxPrice = $event"
+          @update:selectedBrands="filterState.selectedBrands = $event"
           @change="handleFilterChange"
         />
       </div>
@@ -154,9 +157,19 @@ const currentPage = ref(0);
 const itemsPerPage = 20;
 const searchQuery = ref((route.query.q as string) || "");
 const viewMode = ref<"grid" | "list">("grid");
-const selectedCategory = ref("");
-const minPrice = ref();
-const maxPrice = ref();
+const filterState = ref({
+  selectedCategory: "",
+  minPrice: 0,
+  maxPrice: 500,
+  selectedBrands: [] as string[],
+});
+const brands = ref<string[]>([
+  "Apple",
+  "Glamour Beauty",
+  "Nike",
+  "Dell",
+  "Essence",
+]);
 
 const productsContainer = useTemplateRef<HTMLElement>("productsContainer");
 
@@ -180,9 +193,12 @@ const handleFilterChange = async () => {
   await navigateTo({
     query: {
       ...route.query,
-      category: selectedCategory.value || undefined,
-      minPrice: minPrice.value,
-      maxPrice: maxPrice.value,
+      category: filterState.value.selectedCategory || undefined,
+      minPrice: filterState.value.minPrice,
+      maxPrice: filterState.value.maxPrice,
+      brands: filterState.value.selectedBrands.length
+        ? filterState.value.selectedBrands.join(",")
+        : undefined,
     },
   });
 
@@ -193,11 +209,14 @@ const handleFilterChange = async () => {
   noMoreProducts.value = false;
 
   let productsResponse;
-  if (selectedCategory.value) {
-    productsResponse = await getProductsByCategory(selectedCategory.value, {
-      limit: itemsPerPage,
-      skip: 0,
-    });
+  if (filterState.value.selectedCategory) {
+    productsResponse = await getProductsByCategory(
+      filterState.value.selectedCategory,
+      {
+        limit: itemsPerPage,
+        skip: 0,
+      }
+    );
   } else {
     productsResponse = await getAllProducts({
       limit: itemsPerPage,
@@ -207,11 +226,20 @@ const handleFilterChange = async () => {
 
   let filteredProducts = productsResponse.products;
 
-  if (minPrice.value > 0 || maxPrice.value < 500) {
+  if (filterState.value.minPrice > 0 || filterState.value.maxPrice < 500) {
     filteredProducts = productsResponse.products.filter((product) => {
       const price = product.price;
-      return price >= minPrice.value && price <= maxPrice.value;
+      return (
+        price >= filterState.value.minPrice &&
+        price <= filterState.value.maxPrice
+      );
     });
+  }
+
+  if (filterState.value.selectedBrands.length > 0) {
+    filteredProducts = filteredProducts.filter((product) =>
+      filterState.value.selectedBrands.includes(product.brand)
+    );
   }
 
   products.value = filteredProducts;
@@ -342,7 +370,7 @@ watch(
 );
 
 watch(viewMode, (newMode) => {
-  if (process.client) {
+  if (import.meta.client) {
     localStorage.setItem("viewMode", newMode);
   }
 });

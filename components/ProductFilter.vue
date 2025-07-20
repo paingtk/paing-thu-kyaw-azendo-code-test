@@ -65,6 +65,30 @@
         />
       </div>
     </div>
+
+    <div class="brand-filter">
+      <label>Brands:</label>
+      <div class="brand-checkboxes">
+        <label v-for="brand in brands" :key="brand" class="brand-checkbox">
+          <input
+            type="checkbox"
+            :value="brand"
+            :checked="selectedBrands.includes(brand)"
+            @change="
+              $emit(
+                'update:selectedBrands',
+                ($event.target as HTMLInputElement).checked
+                  ? [...selectedBrands, brand]
+                  : selectedBrands.filter((b) => b !== brand)
+              );
+              $emit('change');
+            "
+            :disabled="disabled"
+          />
+          {{ brand }}
+        </label>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -74,12 +98,15 @@ defineProps<{
   modelValue: string;
   minPrice: number;
   maxPrice: number;
+  brands: string[];
+  selectedBrands: string[];
   disabled?: boolean;
 }>();
 defineEmits([
   "update:modelValue",
   "update:minPrice",
   "update:maxPrice",
+  "update:selectedBrands",
   "change",
 ]);
 </script>
@@ -124,6 +151,25 @@ defineEmits([
   border-radius: var(--border-radius, 0.375rem);
   border: 1px solid #d1d5db;
   font-size: 1rem;
+}
+
+.brand-filter {
+  display: flex;
+  align-items: center;
+  margin-left: 1rem;
+}
+
+.brand-checkboxes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-left: 0.5rem;
+}
+
+.brand-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
 }
 
 @media (max-width: 768px) {
