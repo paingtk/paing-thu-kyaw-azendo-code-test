@@ -50,24 +50,23 @@
             </button>
           </div>
         </div>
-      </div>
-
-      <div class="filters-section">
-        <ProductFilter
-          v-model="filterState.selectedCategory"
-          :categories="categories"
-          :disabled="initialLoading"
-          :minPrice="filterState.minPrice"
-          :maxPrice="filterState.maxPrice"
-          :brands="brands"
-          :selectedBrands="filterState.selectedBrands"
-          :minRating="filterState.minRating"
-          @update:minPrice="filterState.minPrice = $event"
-          @update:maxPrice="filterState.maxPrice = $event"
-          @update:selectedBrands="filterState.selectedBrands = $event"
-          @update:minRating="filterState.minRating = $event"
-          @change="handleFilterChange"
-        />
+        <div class="filters-section">
+          <ProductFilter
+            v-model="filterState.selectedCategory"
+            :categories="categories"
+            :disabled="initialLoading"
+            :minPrice="filterState.minPrice"
+            :maxPrice="filterState.maxPrice"
+            :brands="brands"
+            :selectedBrands="filterState.selectedBrands"
+            :minRating="filterState.minRating"
+            @update:minPrice="filterState.minPrice = $event"
+            @update:maxPrice="filterState.maxPrice = $event"
+            @update:selectedBrands="filterState.selectedBrands = $event"
+            @update:minRating="filterState.minRating = $event"
+            @change="handleFilterChange"
+          />
+        </div>
       </div>
 
       <div class="products-content">
@@ -104,6 +103,15 @@
               <p>Loading more products...</p>
             </div>
 
+            <button
+              v-else-if="!noMoreProducts && products.length > 0"
+              class="load-more-btn"
+              @click="loadMoreProducts"
+              :disabled="loadingMore"
+            >
+              Load More Products
+            </button>
+
             <div
               v-else-if="noMoreProducts && products.length > 0"
               class="end-message"
@@ -133,6 +141,23 @@
             </div>
           </div>
         </div>
+        <button
+          v-show="showScrollTop"
+          class="scroll-top-btn"
+          @click="scrollToTop"
+          aria-label="Scroll to top"
+          title="Scroll to top"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            fill="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path d="M12 4l-8 8h5v8h6v-8h5z" />
+          </svg>
+        </button>
       </div>
     </div>
   </div>
@@ -140,7 +165,7 @@
 
 <script setup lang="ts">
 import type { Product } from "~/types";
-import { useInfiniteScroll } from "@vueuse/core";
+// import { useInfiniteScroll } from "@vueuse/core";
 import SearchBar from "~/components/SearchBar.vue";
 import ProductFilter from "~/components/ProductFilter.vue";
 
@@ -159,6 +184,7 @@ const currentPage = ref(0);
 const itemsPerPage = 20;
 const searchQuery = ref((route.query.q as string) || "");
 const viewMode = ref<"grid" | "list">("grid");
+const showScrollTop = ref(false);
 const filterState = ref({
   selectedCategory: "",
   minPrice: 0,
@@ -167,11 +193,11 @@ const filterState = ref({
   minRating: 0,
 });
 const brands = ref<string[]>([
-  "Apple",
+  "Gucci",
   "Glamour Beauty",
-  "Nike",
-  "Dell",
-  "Essence",
+  "Dior",
+  "Knoll",
+  "Apple",
 ]);
 
 const productsContainer = useTemplateRef<HTMLElement>("productsContainer");
@@ -378,6 +404,16 @@ const loadMoreProducts = async () => {
   }
 };
 
+const scrollToTop = () => {
+  window.scrollTo({ top: 0, behavior: "smooth" });
+};
+
+onMounted(() => {
+  window.addEventListener("scroll", () => {
+    showScrollTop.value = window.scrollY > 300;
+  });
+});
+
 watch(
   () => route.query.q,
   async (newQuery) => {
@@ -399,15 +435,15 @@ watch(viewMode, (newMode) => {
   }
 });
 
-useInfiniteScroll(window, loadMoreProducts, {
-  distance: 100,
-  direction: "bottom",
-  canLoadMore: () =>
-    !noMoreProducts.value &&
-    !initialLoading.value &&
-    !loadingMore.value &&
-    !searchLoading.value,
-});
+// useInfiniteScroll(window, loadMoreProducts, {
+//   distance: 100,
+//   direction: "bottom",
+//   canLoadMore: () =>
+//     !noMoreProducts.value &&
+//     !initialLoading.value &&
+//     !loadingMore.value &&
+//     !searchLoading.value,
+// });
 
 onMounted(async () => {
   initializeFromQuery();
@@ -436,10 +472,9 @@ onMounted(async () => {
 
 .view-controls {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
-  margin-bottom: 2rem;
-  padding-bottom: 1rem;
+  padding: 1rem 2rem;
 }
 
 .view-toggle {
@@ -466,9 +501,13 @@ onMounted(async () => {
 }
 
 .view-btn.active {
-  background: var(--primary-color, #3b82f6);
-  border-color: var(--primary-color, #3b82f6);
+  background: var(--primary-color);
+  border-color: var(--primary-color);
   color: white;
+}
+
+.view-btn.active:hover {
+  background-color: #1d4ed8;
 }
 
 .products-container {
@@ -503,39 +542,12 @@ onMounted(async () => {
   grid-template-columns: 2fr 1fr;
   gap: 2rem;
   margin-bottom: 3rem;
+  background-color: white;
 }
 
 .filters-section {
-  background-color: white;
-  border-radius: var(--border-radius);
-  padding: 2rem;
-  box-shadow: var(--shadow-sm);
-}
-
-.filters-placeholder {
-  background-color: #fef3c7;
-  border: 1px solid #f59e0b;
-  border-radius: var(--border-radius);
-  padding: 1.5rem;
-}
-
-.filters-placeholder h3 {
-  color: #92400e;
-  margin-bottom: 1rem;
-}
-
-.filters-placeholder p {
-  color: #92400e;
-  margin-bottom: 1rem;
-}
-
-.filters-placeholder ul {
-  color: #92400e;
-  margin-left: 1.5rem;
-}
-
-.filters-placeholder li {
-  margin-bottom: 0.5rem;
+  grid-column: 1 / -1;
+  padding: 1rem 2rem;
 }
 
 .products-content {
@@ -642,9 +654,55 @@ onMounted(async () => {
   color: var(--danger-color);
 }
 
+.load-more-btn {
+  display: flex;
+  margin: 2rem auto 0 auto;
+  padding: 0.75rem 2rem;
+  font-size: 1rem;
+  background: transparent;
+  color: var(--text-light);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius, 0.375rem);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.load-more-btn:disabled {
+  background: #a5b4fc;
+  cursor: not-allowed;
+}
+
+.load-more-btn:hover:not(:disabled) {
+  background: var(--primary-color);
+  color: white;
+}
+
+.scroll-top-btn {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  z-index: 100;
+  background: var(--primary-color);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  font-size: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  opacity: 0.85;
+  transition: opacity 0.2s;
+}
+
+.scroll-top-btn:hover {
+  opacity: 1;
+}
+
 @media (max-width: 768px) {
   .search-controls {
     grid-template-columns: 1fr;
+    gap: 1rem;
   }
 
   .products-grid {
@@ -659,6 +717,10 @@ onMounted(async () => {
 
   .products-content {
     padding: 2rem;
+  }
+
+  .view-controls {
+    justify-content: flex-start;
   }
 }
 </style>

@@ -302,8 +302,8 @@ const clearFilters = () => {
 .clear-button {
   padding: 0.5rem 1rem;
   border-radius: var(--border-radius, 0.375rem);
-  border: 1px solid #dc2626;
-  background: #dc2626;
+  border: none;
+  background: var(--secondary-color);
   color: white;
   font-size: 1rem;
   cursor: pointer;
@@ -311,7 +311,7 @@ const clearFilters = () => {
 }
 
 .clear-button:hover:not(:disabled) {
-  background: #b91c1c;
+  background: var(--text-color);
 }
 
 .clear-button:disabled {
@@ -329,6 +329,7 @@ const clearFilters = () => {
 
   .sort-row {
     flex-direction: column;
+    align-items: flex-start;
     gap: 1rem;
   }
 }

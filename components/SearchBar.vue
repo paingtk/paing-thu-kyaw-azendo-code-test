@@ -194,10 +194,7 @@ onUnmounted(() => {
 
 <style scoped>
 .search-section {
-  background-color: white;
-  border-radius: var(--border-radius);
-  padding: 2rem;
-  box-shadow: var(--shadow-sm);
+  padding: 1rem 2rem;
 }
 
 .search-container {
