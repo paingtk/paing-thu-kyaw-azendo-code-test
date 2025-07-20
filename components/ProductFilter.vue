@@ -121,6 +121,43 @@
         </select>
       </div>
     </div>
+
+    <div class="sort-row">
+      <div class="sort">
+        <label for="sort-by">Sort by:</label>
+        <select
+          id="sort-by"
+          class="sort-dropdown"
+          :value="sortBy"
+          @change="
+            if ($event.target) {
+              $emit(
+                'update:sortBy',
+                ($event.target as HTMLSelectElement).value
+              );
+            }
+            $emit('change');
+          "
+          :disabled="disabled"
+        >
+          <option value="">Default</option>
+          <option value="price-asc">Price: Low to High</option>
+          <option value="price-desc">Price: High to Low</option>
+          <option value="rating-desc">Rating: High to Low</option>
+          <option value="name-asc">Name: A to Z</option>
+        </select>
+      </div>
+      <div class="clear-filter">
+        <button
+          type="button"
+          class="clear-button"
+          @click="clearFilters"
+          :disabled="disabled"
+        >
+          Clear Filters
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -133,16 +170,31 @@ defineProps<{
   brands: string[];
   selectedBrands: string[];
   minRating: number;
+  sortBy?: string;
   disabled?: boolean;
 }>();
-defineEmits([
+
+const emit = defineEmits([
   "update:modelValue",
   "update:minPrice",
   "update:maxPrice",
   "update:selectedBrands",
   "update:minRating",
+  "update:sortBy",
   "change",
+  "clear",
 ]);
+
+const clearFilters = () => {
+  emit("update:modelValue", "");
+  emit("update:minPrice", 0);
+  emit("update:maxPrice", 500);
+  emit("update:selectedBrands", []);
+  emit("update:minRating", 0);
+  emit("update:sortBy", "");
+  emit("clear");
+  emit("change");
+};
 </script>
 
 <style scoped>
@@ -156,6 +208,12 @@ defineEmits([
   display: flex;
   align-items: center;
   gap: 2rem;
+}
+
+.sort-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .category-filter {
@@ -208,6 +266,21 @@ defineEmits([
   margin-left: 0.5rem;
 }
 
+.sort {
+  display: flex;
+  align-items: center;
+}
+
+.sort-dropdown {
+  margin-left: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: var(--border-radius, 0.375rem);
+  border: 1px solid #d1d5db;
+  background: white;
+  color: #6b7280;
+  font-size: 1rem;
+}
+
 .brand-filter {
   display: flex;
   align-items: center;
@@ -226,11 +299,37 @@ defineEmits([
   gap: 0.25rem;
 }
 
+.clear-button {
+  padding: 0.5rem 1rem;
+  border-radius: var(--border-radius, 0.375rem);
+  border: 1px solid #dc2626;
+  background: #dc2626;
+  color: white;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.clear-button:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
+.clear-button:disabled {
+  background: #9ca3af;
+  border-color: #9ca3af;
+  cursor: not-allowed;
+}
+
 @media (max-width: 768px) {
   .filter-row {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.5rem;
+  }
+
+  .sort-row {
+    flex-direction: column;
+    gap: 1rem;
   }
 }
 </style>
