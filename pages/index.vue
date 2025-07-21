@@ -114,7 +114,6 @@ onMounted(async () => {
 });
 
 const formatCategoryName = (category: string) => {
-  console.log("cate", category);
   return category
     .split("-")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))

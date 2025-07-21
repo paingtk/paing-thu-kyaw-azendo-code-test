@@ -66,7 +66,7 @@
             @update:selectedBrands="filterState.selectedBrands = $event"
             @update:minRating="filterState.minRating = $event"
             @update:sortBy="filterState.sortBy = $event"
-            @change="handleFilterChange"
+            @change="debouncedFilterChange"
           />
         </div>
       </div>
@@ -168,6 +168,7 @@
 <script setup lang="ts">
 import type { Product } from "~/types";
 // import { useInfiniteScroll } from "@vueuse/core";
+import { useDebounceFn } from "@vueuse/core";
 import SearchBar from "~/components/SearchBar.vue";
 import ProductFilter from "~/components/ProductFilter.vue";
 
@@ -330,6 +331,10 @@ const handleFilterChange = async () => {
     initialLoading.value = false;
   }
 };
+
+const debouncedFilterChange = useDebounceFn(async () => {
+  await handleFilterChange();
+}, 1000);
 
 const performSearch = async () => {
   if (!searchQuery.value.trim()) {
