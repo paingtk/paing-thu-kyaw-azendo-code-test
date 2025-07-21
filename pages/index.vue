@@ -40,15 +40,15 @@
     <section class="featured-products">
       <div class="container">
         <h2>Featured Products</h2>
-        
+
         <div v-if="loading" class="loading-container">
           <div class="spinner"></div>
         </div>
-        
+
         <div v-else-if="error" class="alert alert-error">
           {{ error }}
         </div>
-        
+
         <div v-else class="products-grid">
           <ProductCard
             v-for="product in featuredProducts"
@@ -62,20 +62,20 @@
     <section class="categories-section">
       <div class="container">
         <h2>Shop by Category</h2>
-        
+
         <div v-if="categoriesLoading" class="loading-container">
           <div class="spinner"></div>
         </div>
-        
+
         <div v-else class="categories-grid">
           <NuxtLink
-            v-for="category in categories"
-            :key="category"
+            v-for="(category, index) in categories"
+            :key="index"
             :to="`/products?category=${category}`"
             class="category-card"
           >
             <div class="category-icon">📦</div>
-            <h3>{{ formatCategoryName(category) }}</h3>
+            <h3>{{ formatCategoryName(category.name) }}</h3>
           </NuxtLink>
         </div>
       </div>
@@ -84,41 +84,42 @@
 </template>
 
 <script setup lang="ts">
-import type { Product } from '~/types'
+import type { Product, Category } from "~/types";
 
-const { getFeaturedProducts, getCategories } = useProducts()
+const { getFeaturedProducts, getCategories } = useProducts();
 
-const featuredProducts = ref<Product[]>([])
-const categories = ref<string[]>([])
-const loading = ref(true)
-const categoriesLoading = ref(true)
-const error = ref<string | null>(null)
+const featuredProducts = ref<Product[]>([]);
+const categories = ref<Category[]>([]);
+const loading = ref(true);
+const categoriesLoading = ref(true);
+const error = ref<string | null>(null);
 
 // Fetch featured products
 onMounted(async () => {
   try {
-    featuredProducts.value = await getFeaturedProducts(8)
+    featuredProducts.value = await getFeaturedProducts(8);
   } catch (err: any) {
-    error.value = err.message || 'Failed to load featured products'
+    error.value = err.message || "Failed to load featured products";
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 
   try {
-    categories.value = await getCategories()
+    categories.value = await getCategories();
   } catch (err) {
-    console.error('Failed to load categories:', err)
+    console.error("Failed to load categories:", err);
   } finally {
-    categoriesLoading.value = false
+    categoriesLoading.value = false;
   }
-})
+});
 
 const formatCategoryName = (category: string) => {
+  console.log("cate", category);
   return category
-    .split('-')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ')
-}
+    .split("-")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+};
 </script>
 
 <style scoped>
@@ -240,7 +241,7 @@ const formatCategoryName = (category: string) => {
   .hero-content h1 {
     font-size: 2rem;
   }
-  
+
   .features-grid,
   .products-grid,
   .categories-grid {
