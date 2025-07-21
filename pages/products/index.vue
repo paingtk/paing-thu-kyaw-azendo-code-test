@@ -60,10 +60,12 @@
             :brands="brands"
             :selectedBrands="filterState.selectedBrands"
             :minRating="filterState.minRating"
+            :sortBy="filterState.sortBy"
             @update:minPrice="filterState.minPrice = $event"
             @update:maxPrice="filterState.maxPrice = $event"
             @update:selectedBrands="filterState.selectedBrands = $event"
             @update:minRating="filterState.minRating = $event"
+            @update:sortBy="filterState.sortBy = $event"
             @change="handleFilterChange"
           />
         </div>
@@ -191,6 +193,8 @@ const filterState = ref({
   maxPrice: 500,
   selectedBrands: [] as string[],
   minRating: 0,
+  sortBy: "",
+  order: "",
 });
 const brands = ref<string[]>([
   "Gucci",
@@ -253,6 +257,9 @@ const initializeFromQuery = () => {
   if (query.brands)
     filterState.value.selectedBrands = (query.brands as string).split(",");
   if (query.minRating) filterState.value.minRating = Number(query.minRating);
+  if (query.sortBy && query.order) {
+    filterState.value.sortBy = `${query.sortBy}-${query.order}`;
+  }
 };
 
 const buildQueryParams = () => ({
@@ -265,18 +272,25 @@ const buildQueryParams = () => ({
     ? filterState.value.selectedBrands.join(",")
     : undefined,
   minRating: filterState.value.minRating || undefined,
+  sortBy: filterState.value.sortBy.split("-")[0] || undefined,
+  order: filterState.value.sortBy.split("-")[1] || undefined,
 });
 
 const fetchProducts = async (skip = 0) => {
+  const [sortBy, order] = filterState.value.sortBy.split("-");
   if (filterState.value.selectedCategory) {
     return await getProductsByCategory(filterState.value.selectedCategory, {
       limit: itemsPerPage,
       skip,
+      sortBy: sortBy,
+      order: order || filterState.value.order,
     });
   } else {
     return await getAllProducts({
       limit: itemsPerPage,
       skip,
+      sortBy: sortBy,
+      order: order || filterState.value.order,
     });
   }
 };

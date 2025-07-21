@@ -153,8 +153,9 @@
             <option value="">Default</option>
             <option value="price-asc">Price: Low to High</option>
             <option value="price-desc">Price: High to Low</option>
+            <option value="rating-asc">Rating: Low to High</option>
             <option value="rating-desc">Rating: High to Low</option>
-            <option value="name-asc">Name: A to Z</option>
+            <option value="title-asc">Name: A to Z</option>
           </select>
         </div>
         <div class="clear-filter">
@@ -365,8 +366,8 @@ const clearFilters = () => {
 
 @media (max-width: 768px) {
   .filter-header {
-    cursor: pointer;
     display: flex;
+    cursor: pointer;
   }
 
   .filter-content.mobile-hidden {
@@ -383,6 +384,13 @@ const clearFilters = () => {
     flex-direction: column;
     align-items: flex-start;
     gap: 1rem;
+  }
+
+  .sort {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
   }
 }
 </style>
