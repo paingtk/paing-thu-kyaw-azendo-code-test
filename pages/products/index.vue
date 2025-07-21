@@ -197,7 +197,7 @@ const brands = ref<string[]>([
   "Glamour Beauty",
   "Dior",
   "Knoll",
-  "Apple",
+  "Bath Trends",
 ]);
 
 const productsContainer = useTemplateRef<HTMLElement>("productsContainer");

@@ -147,7 +147,7 @@ const handleSearchInput = async () => {
     } else {
       emit("clear");
     }
-  }, 300);
+  }, 500);
 };
 
 const selectSuggestion = (suggestion: string) => {
