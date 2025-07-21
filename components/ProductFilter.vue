@@ -1,167 +1,180 @@
 <template>
   <div class="filter-container">
-    <div class="filter-row">
-      <div class="category-filter">
-        <label for="category-select">Category:</label>
-        <select
-          id="category-select"
-          class="category-dropdown"
-          :value="modelValue"
-          @change="
-            if ($event.target)
-              $emit(
-                'update:modelValue',
-                ($event.target as HTMLSelectElement).value
-              );
-            $emit('change');
-          "
-          :disabled="disabled"
-        >
-          <option value="">All Categories</option>
-          <option
-            v-for="category in categories"
-            :key="category"
-            :value="category"
+    <h3 class="filter-header" @click="toggleMobileFilters">
+      🎛️ Filters
+      <span class="mobile-toggle" :class="{ expanded: showMobileFilters }"
+        >▼</span
+      >
+    </h3>
+    <div
+      class="filter-content"
+      :class="{ 'mobile-hidden': !showMobileFilters }"
+    >
+      <div class="filter-row">
+        <div class="category-filter">
+          <label for="category-select">Category:</label>
+          <select
+            id="category-select"
+            class="category-dropdown"
+            :value="modelValue"
+            @change="
+              if ($event.target)
+                $emit(
+                  'update:modelValue',
+                  ($event.target as HTMLSelectElement).value
+                );
+              $emit('change');
+            "
+            :disabled="disabled"
           >
-            {{ category }}
-          </option>
-        </select>
-      </div>
-
-      <div class="price-range">
-        <label for="price-range">Price:</label>
-        <div class="price-inputs">
-          <input
-            id="price-range"
-            type="number"
-            :value="minPrice"
-            @input="
-              if ($event.target) {
-                $emit(
-                  'update:minPrice',
-                  Number(($event.target as HTMLInputElement).value)
-                );
-              }
-              $emit('change');
-            "
-            :disabled="disabled"
-            placeholder="Min"
-          />
-          <span>–</span>
-          <input
-            id="price-range-max"
-            type="number"
-            :value="maxPrice"
-            @input="
-              if ($event.target) {
-                $emit(
-                  'update:maxPrice',
-                  Number(($event.target as HTMLInputElement).value)
-                );
-              }
-              $emit('change');
-            "
-            :disabled="disabled"
-            placeholder="Max"
-          />
+            <option value="">All Categories</option>
+            <option
+              v-for="category in categories"
+              :key="category"
+              :value="category"
+            >
+              {{ category }}
+            </option>
+          </select>
         </div>
-      </div>
-    </div>
 
-    <div class="filter-row">
-      <div class="brand-filter">
-        <label>Brands:</label>
-        <div class="brand-checkboxes">
-          <label v-for="brand in brands" :key="brand" class="brand-checkbox">
+        <div class="price-range">
+          <label for="price-range">Price:</label>
+          <div class="price-inputs">
             <input
-              type="checkbox"
-              :value="brand"
-              :checked="selectedBrands.includes(brand)"
-              @change="
-                $emit(
-                  'update:selectedBrands',
-                  ($event.target as HTMLInputElement).checked
-                    ? [...selectedBrands, brand]
-                    : selectedBrands.filter((b) => b !== brand)
-                );
+              id="price-range"
+              type="number"
+              :value="minPrice"
+              @input="
+                if ($event.target) {
+                  $emit(
+                    'update:minPrice',
+                    Number(($event.target as HTMLInputElement).value)
+                  );
+                }
                 $emit('change');
               "
               :disabled="disabled"
+              placeholder="Min"
             />
-            {{ brand }}
-          </label>
+            <span>–</span>
+            <input
+              id="price-range-max"
+              type="number"
+              :value="maxPrice"
+              @input="
+                if ($event.target) {
+                  $emit(
+                    'update:maxPrice',
+                    Number(($event.target as HTMLInputElement).value)
+                  );
+                }
+                $emit('change');
+              "
+              :disabled="disabled"
+              placeholder="Max"
+            />
+          </div>
         </div>
       </div>
-    </div>
 
-    <div class="filter-row">
-      <div class="rating-filter">
-        <label for="rating-select">Rating:</label>
-        <select
-          id="rating-select"
-          class="rating-dropdown"
-          :value="minRating"
-          @change="
-            if ($event.target) {
-              $emit(
-                'update:minRating',
-                Number(($event.target as HTMLSelectElement).value)
-              );
-            }
-            $emit('change');
-          "
-          :disabled="disabled"
-        >
-          <option value="0">All Ratings</option>
-          <option value="5">5 ⭐ & up</option>
-          <option value="4">4 ⭐ & up</option>
-          <option value="3">3 ⭐ & up</option>
-          <option value="2">2 ⭐ & up</option>
-          <option value="1">1 ⭐ & up</option>
-        </select>
+      <div class="filter-row">
+        <div class="brand-filter">
+          <label>Brands:</label>
+          <div class="brand-checkboxes">
+            <label v-for="brand in brands" :key="brand" class="brand-checkbox">
+              <input
+                type="checkbox"
+                :value="brand"
+                :checked="selectedBrands.includes(brand)"
+                @change="
+                  $emit(
+                    'update:selectedBrands',
+                    ($event.target as HTMLInputElement).checked
+                      ? [...selectedBrands, brand]
+                      : selectedBrands.filter((b) => b !== brand)
+                  );
+                  $emit('change');
+                "
+                :disabled="disabled"
+              />
+              {{ brand }}
+            </label>
+          </div>
+        </div>
       </div>
-    </div>
 
-    <div class="sort-row">
-      <div class="sort">
-        <label for="sort-by">Sort by:</label>
-        <select
-          id="sort-by"
-          class="sort-dropdown"
-          :value="sortBy"
-          @change="
-            if ($event.target) {
-              $emit(
-                'update:sortBy',
-                ($event.target as HTMLSelectElement).value
-              );
-            }
-            $emit('change');
-          "
-          :disabled="disabled"
-        >
-          <option value="">Default</option>
-          <option value="price-asc">Price: Low to High</option>
-          <option value="price-desc">Price: High to Low</option>
-          <option value="rating-desc">Rating: High to Low</option>
-          <option value="name-asc">Name: A to Z</option>
-        </select>
+      <div class="filter-row">
+        <div class="rating-filter">
+          <label for="rating-select">Rating:</label>
+          <select
+            id="rating-select"
+            class="rating-dropdown"
+            :value="minRating"
+            @change="
+              if ($event.target) {
+                $emit(
+                  'update:minRating',
+                  Number(($event.target as HTMLSelectElement).value)
+                );
+              }
+              $emit('change');
+            "
+            :disabled="disabled"
+          >
+            <option value="0">All Ratings</option>
+            <option value="5">5 ⭐ & up</option>
+            <option value="4">4 ⭐ & up</option>
+            <option value="3">3 ⭐ & up</option>
+            <option value="2">2 ⭐ & up</option>
+            <option value="1">1 ⭐ & up</option>
+          </select>
+        </div>
       </div>
-      <div class="clear-filter">
-        <button
-          type="button"
-          class="clear-button"
-          @click="clearFilters"
-          :disabled="disabled"
-        >
-          Clear Filters
-        </button>
+
+      <div class="sort-row">
+        <div class="sort">
+          <label for="sort-by">Sort by:</label>
+          <select
+            id="sort-by"
+            class="sort-dropdown"
+            :value="sortBy"
+            @change="
+              if ($event.target) {
+                $emit(
+                  'update:sortBy',
+                  ($event.target as HTMLSelectElement).value
+                );
+              }
+              $emit('change');
+            "
+            :disabled="disabled"
+          >
+            <option value="">Default</option>
+            <option value="price-asc">Price: Low to High</option>
+            <option value="price-desc">Price: High to Low</option>
+            <option value="rating-desc">Rating: High to Low</option>
+            <option value="name-asc">Name: A to Z</option>
+          </select>
+        </div>
+        <div class="clear-filter">
+          <button
+            type="button"
+            class="clear-button"
+            @click="clearFilters"
+            :disabled="disabled"
+          >
+            Clear Filters
+          </button>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref } from "vue";
+
 defineProps<{
   categories: string[];
   modelValue: string;
@@ -185,6 +198,12 @@ const emit = defineEmits([
   "clear",
 ]);
 
+const showMobileFilters = ref(false);
+
+const toggleMobileFilters = () => {
+  showMobileFilters.value = !showMobileFilters.value;
+};
+
 const clearFilters = () => {
   emit("update:modelValue", "");
   emit("update:minPrice", 0);
@@ -199,6 +218,30 @@ const clearFilters = () => {
 
 <style scoped>
 .filter-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.filter-header {
+  margin: 0;
+  cursor: pointer;
+  user-select: none;
+  display: none;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mobile-toggle {
+  transition: transform 0.2s ease;
+  font-size: 0.8em;
+}
+
+.mobile-toggle.expanded {
+  transform: rotate(180deg);
+}
+
+.filter-content {
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -321,6 +364,15 @@ const clearFilters = () => {
 }
 
 @media (max-width: 768px) {
+  .filter-header {
+    cursor: pointer;
+    display: flex;
+  }
+
+  .filter-content.mobile-hidden {
+    display: none;
+  }
+
   .filter-row {
     flex-direction: column;
     align-items: flex-start;
