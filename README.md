@@ -5,10 +5,12 @@ This is a **Nuxt 3 e-commerce application** that is **80% complete**. Your task 
 ## 🚀 Getting Started
 
 ### Prerequisites
+
 - Node.js (v18 or later)
 - npm or yarn
 
 ### Installation
+
 ```bash
 # Install dependencies
 npm install
@@ -20,16 +22,20 @@ npm run dev
 npm run build
 ```
 
+## The product page has developed according to the mockup from PRODUCT_CATALOG.md
+
 ## 🎯 Your Tasks (20% to Complete)
 
 Use the provided public API endpoints from DummyJSON – no need to set up a backend.
 
 ### 1. **Product Catalog Page** (Main Task - `/pages/products/index.vue`)
+
 **Location**: `/pages/products/index.vue`
 
 **Current State**: Placeholder with implementation hints
 
 **Requirements**:
+
 - [ ] Implement product grid with responsive design
 - [ ] Add search functionality with debouncing
 - [ ] Create category filter (dropdown)
@@ -43,6 +49,7 @@ Use the provided public API endpoints from DummyJSON – no need to set up a bac
 - [ ] Make responsive for mobile devices
 
 **API Endpoints to Use**:
+
 - `GET /products` - Get all products
 - `GET /products/search?q=query` - Search products
 - `GET /products/categories` - Get categories
@@ -51,20 +58,24 @@ Use the provided public API endpoints from DummyJSON – no need to set up a bac
 ### 2. **Bug Fixes**
 
 #### Cart Calculation Bug
+
 **Location**: `/stores/cart.ts` (line 18-22)
 
 **Issue**: Cart total calculation is incorrect
+
 ```typescript
 // Bug: Should multiply by quantity, but we're adding it instead
-const itemTotal = item.product.price + item.quantity
+const itemTotal = item.product.price + item.quantity;
 ```
 
 **Fix**: Change to proper multiplication:
+
 ```typescript
-const itemTotal = item.product.price * item.quantity
+const itemTotal = item.product.price * item.quantity;
 ```
 
 #### Mobile Navigation Bug
+
 **Location**: `/layouts/default.vue` (line 229)
 
 **Issue**: Mobile menu doesn't open when hamburger is clicked
@@ -74,9 +85,11 @@ const itemTotal = item.product.price * item.quantity
 ### 3. **Missing Features**
 
 #### Payment Integration
+
 **Location**: `/pages/checkout.vue`
 
 **Requirements**:
+
 - [ ] Implement credit card form with validation
 - [ ] Add payment method selection
 - [ ] Create card number formatting
@@ -84,9 +97,11 @@ const itemTotal = item.product.price * item.quantity
 - [ ] Implement billing address form
 
 #### Order Review
+
 **Location**: `/pages/checkout.vue`
 
 **Requirements**:
+
 - [ ] Create order summary with all items
 - [ ] Add shipping information review
 - [ ] Show payment method summary
@@ -126,27 +141,30 @@ const itemTotal = item.product.price * item.quantity
 ## 🔧 Available Composables
 
 ### `useProducts()`
+
 ```typescript
-const { 
-  getAllProducts,      // Get all products with pagination
-  getProduct,          // Get single product by ID
+const {
+  getAllProducts, // Get all products with pagination
+  getProduct, // Get single product by ID
   getProductsByCategory, // Get products by category
-  searchProducts,      // Search products by query
-  getCategories,       // Get all categories
-  getFeaturedProducts  // Get featured products
-} = useProducts()
+  searchProducts, // Search products by query
+  getCategories, // Get all categories
+  getFeaturedProducts, // Get featured products
+} = useProducts();
 ```
 
 ### `useApi()`
+
 ```typescript
-const api = useApi()
-await api.get('/products')
-await api.post('/products', data)
+const api = useApi();
+await api.get("/products");
+await api.post("/products", data);
 ```
 
 ## 🎨 Design System
 
 ### CSS Variables
+
 ```css
 :root {
   --primary-color: #2563eb;
@@ -163,6 +181,7 @@ await api.post('/products', data)
 ```
 
 ### Utility Classes
+
 - `.btn`, `.btn-primary`, `.btn-secondary`, `.btn-outline`
 - `.form-input`, `.form-label`, `.form-group`
 - `.card`, `.card-header`, `.card-body`
@@ -173,6 +192,7 @@ await api.post('/products', data)
 ## 🌐 API Documentation (DummyJSON)
 
 ### Authentication
+
 ```bash
 POST /auth/login
 {
@@ -182,6 +202,7 @@ POST /auth/login
 ```
 
 ### Products
+
 ```bash
 GET /products                    # Get all products
 GET /products?limit=10&skip=0    # Pagination
@@ -192,13 +213,16 @@ GET /products/1                  # Get single product
 ```
 
 ### Demo Users
+
 Optional – only needed if you want to explore auth-protected routes.
+
 - **Username**: `emilys` / **Password**: `emilyspass`
 - **Username**: `michaelw` / **Password**: `michaelwpass`
 
 ## ✅ Completion Criteria
 
 ### Product Catalog (70 points)
+
 - [ ] Products load and display correctly (15 points)
 - [ ] Search functionality works (15 points)
 - [ ] Filters work (category, price, brand, rating) (20 points)
@@ -207,15 +231,18 @@ Optional – only needed if you want to explore auth-protected routes.
 - [ ] Responsive design (5 points)
 
 ### Bug Fixes (20 points)
+
 - [ ] Cart calculation fixed (10 points)
 - [ ] Mobile navigation fixed (10 points)
 
 ### Code Quality (10 points)
+
 - [ ] Clean, readable code (5 points)
 - [ ] Proper TypeScript usage (3 points)
 - [ ] Good component structure (2 points)
 
 ## 🎯 Bonus Points (Optional - only if you have extra time and want to explore additional features)
+
 - [ ] Add loading animations
 - [ ] Implement advanced search (autocomplete, suggestions)
 - [ ] Add product comparison feature
@@ -235,6 +262,7 @@ Optional – only needed if you want to explore auth-protected routes.
 ## 📞 Need Help?
 
 If you encounter any issues:
+
 1. Check the browser console for errors
 2. Review the existing code structure
 3. Use the TypeScript types in `/types/index.ts`
@@ -243,6 +271,7 @@ If you encounter any issues:
 ## 📤 Submission Instructions
 
 When you're done:
+
 - Push your solution to a public GitHub repository **OR**
 - Zip the project folder and send it to us via email
 
@@ -251,6 +280,7 @@ Please make sure your name is included in the repo name or ZIP file.
 ## 🏆 Good Luck!
 
 This assessment tests real-world frontend development skills including:
+
 - Vue 3 Composition API
 - Nuxt 3 framework
 - TypeScript

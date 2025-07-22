@@ -746,7 +746,7 @@ onMounted(async () => {
   }
 
   .view-controls {
-    justify-content: flex-start;
+    display: none;
   }
 }
 </style>

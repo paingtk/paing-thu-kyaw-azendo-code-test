@@ -1,9 +1,9 @@
 <template>
   <div class="filter-container">
     <h3 class="filter-header" @click="toggleMobileFilters">
-      🎛️ Filters
+      Filters
       <span class="mobile-toggle" :class="{ expanded: showMobileFilters }"
-        >▼</span
+        >↓</span
       >
     </h3>
     <div
