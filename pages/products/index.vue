@@ -207,6 +207,14 @@ const brands = ref<string[]>([
 
 const productsContainer = useTemplateRef<HTMLElement>("productsContainer");
 
+const sortParams = computed(() => {
+  const [sortBy, order] = filterState.value.sortBy.split("-");
+  return {
+    sortBy,
+    order: order || filterState.value.order,
+  };
+});
+
 const applyFilters = (productList: Product[]): Product[] => {
   let filtered = productList;
 
@@ -263,7 +271,7 @@ const initializeFromQuery = () => {
   }
 };
 
-const buildQueryParams = () => ({
+const queryParams = computed(() => ({
   ...route.query,
   category: filterState.value.selectedCategory || undefined,
   minPrice: filterState.value.minPrice || undefined,
@@ -273,25 +281,24 @@ const buildQueryParams = () => ({
     ? filterState.value.selectedBrands.join(",")
     : undefined,
   minRating: filterState.value.minRating || undefined,
-  sortBy: filterState.value.sortBy.split("-")[0] || undefined,
-  order: filterState.value.sortBy.split("-")[1] || undefined,
-});
+  sortBy: sortParams.value.sortBy || undefined,
+  order: sortParams.value.order || undefined,
+}));
 
 const fetchProducts = async (skip = 0) => {
-  const [sortBy, order] = filterState.value.sortBy.split("-");
   if (filterState.value.selectedCategory) {
     return await getProductsByCategory(filterState.value.selectedCategory, {
       limit: itemsPerPage,
       skip,
-      sortBy: sortBy,
-      order: order || filterState.value.order,
+      sortBy: sortParams.value.sortBy,
+      order: sortParams.value.order || filterState.value.order,
     });
   } else {
     return await getAllProducts({
       limit: itemsPerPage,
       skip,
-      sortBy: sortBy,
-      order: order || filterState.value.order,
+      sortBy: sortParams.value.sortBy,
+      order: sortParams.value.order || filterState.value.order,
     });
   }
 };
@@ -313,7 +320,7 @@ const handleClearSearch = async () => {
 };
 
 const handleFilterChange = async () => {
-  await navigateTo({ query: buildQueryParams() });
+  await navigateTo({ query: queryParams.value });
 
   resetPagination();
   initialLoading.value = true;
@@ -334,7 +341,7 @@ const handleFilterChange = async () => {
 
 const debouncedFilterChange = useDebounceFn(async () => {
   await handleFilterChange();
-}, 1000);
+}, 100);
 
 const performSearch = async () => {
   if (!searchQuery.value.trim()) {
