@@ -211,6 +211,7 @@
                         )
                       "
                       @blur="validateCardNumber"
+                      required
                     />
                     <div class="card-icon">
                       {{ getCardType(paymentForm.cardNumber) }}
@@ -240,6 +241,7 @@
                         )
                       "
                       @blur="validateExpiryDate"
+                      required
                     />
                     <span v-if="cardErrors.expiryDate" class="error-message">{{
                       cardErrors.expiryDate
@@ -257,6 +259,7 @@
                       maxlength="3"
                       @input="paymentForm.cvv = formatCVV(paymentForm.cvv)"
                       @blur="validateCVV"
+                      required
                     />
                     <span v-if="cardErrors.cvv" class="error-message">{{
                       cardErrors.cvv
@@ -276,6 +279,7 @@
                     :class="{ error: cardErrors.cardholderName }"
                     placeholder="John Doe"
                     @blur="validateCardholderName"
+                    required
                   />
                   <span
                     v-if="cardErrors.cardholderName"
@@ -605,8 +609,43 @@ watch(
   }
 );
 
+const checkPaymentForm = computed(() => {
+  if (paymentForm.method === "card") {
+    const requiredCardFields = [
+      paymentForm.cardNumber,
+      paymentForm.expiryDate,
+      paymentForm.cvv,
+      paymentForm.cardholderName,
+    ];
+
+    const cardFieldsValid = requiredCardFields.every(
+      (field) => field.trim() !== ""
+    );
+
+    if (!paymentForm.sameAsShipping) {
+      const billingFields = [
+        paymentForm.billingFirstName,
+        paymentForm.billingLastName,
+        paymentForm.billingAddress,
+        paymentForm.billingCity,
+        paymentForm.billingState,
+        paymentForm.billingZipCode,
+      ];
+      return (
+        cardFieldsValid && billingFields.every((field) => field.trim() !== "")
+      );
+    }
+
+    return cardFieldsValid;
+  }
+  return false;
+});
+
 const nextStep = () => {
   if (step.value < 3) {
+    if (step.value === 2 && !checkPaymentForm.value) {
+      return;
+    }
     step.value++;
   }
 };
