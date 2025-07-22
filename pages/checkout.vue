@@ -397,25 +397,91 @@
           <div v-else-if="step === 3" class="checkout-step">
             <h2>Order Review</h2>
 
-            <div class="incomplete-section">
-              <div class="incomplete-message">
-                <h3>🚧 Order Review Incomplete</h3>
-                <p>This section needs to be implemented:</p>
-                <ul>
-                  <li>Order summary with all items</li>
-                  <li>Shipping information review</li>
-                  <li>Payment method summary</li>
-                  <li>Terms and conditions checkbox</li>
-                  <li>Place order functionality</li>
-                </ul>
+            <div class="order-review-container">
+              <div class="review-group">
+                <h4>Items List</h4>
+                <div class="summary-items">
+                  <div
+                    v-for="item in cartItems"
+                    :key="item.id"
+                    class="summary-item"
+                  >
+                    <div class="item-info">
+                      <img
+                        :src="item.product.thumbnail"
+                        :alt="item.product.title"
+                        class="item-image"
+                      />
+                      <div class="item-details">
+                        <h4>{{ item.product.title }}</h4>
+                        <p>Qty: {{ item.quantity }}</p>
+                      </div>
+                    </div>
+                    <div class="item-price">
+                      ${{ (item.product.price * item.quantity).toFixed(2) }}
+                    </div>
+                  </div>
+                </div>
               </div>
+
+              <div class="shipping-info-container">
+                <h4>Shipping Information</h4>
+                <div class="shipping-info">
+                  <span class="review-order-label">Name:</span>
+                  <span
+                    >{{ shippingForm.firstName }}
+                    {{ shippingForm.lastName }}</span
+                  >
+                </div>
+                <div class="shipping-info">
+                  <span class="review-order-label">Address:</span>
+                  <span
+                    >{{ shippingForm.address }}, {{ shippingForm.city }},
+                    {{ shippingForm.state }}, {{ shippingForm.zipCode }}</span
+                  >
+                </div>
+              </div>
+
+              <div class="payment-review-container">
+                <h4>Payment Method</h4>
+                <div class="shipping-info">
+                  <span class="review-order-label">Pay with:</span>
+                  <span>{{ paymentForm.method }}</span>
+                </div>
+                <div
+                  v-show="paymentForm.method === 'card'"
+                  class="shipping-info"
+                >
+                  <span class="review-order-label">Card Number:</span>
+                  <span>{{ maskedCardNumber }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <input
+                type="checkbox"
+                name="billing-address"
+                id="billing-address"
+                v-model="isTermsChecked"
+                class="checkbox-input"
+              />
+              <label for="billing-address"
+                >I agree to the terms and conditions</label
+              >
             </div>
 
             <div class="form-actions">
               <button @click="step = 2" class="btn btn-outline">
                 Back to Payment
               </button>
-              <button class="btn btn-primary" disabled>Place Order</button>
+              <button
+                @click="onOrderPlaced"
+                class="btn btn-primary"
+                :disabled="!isTermsChecked"
+              >
+                Place Order
+              </button>
             </div>
           </div>
         </div>
@@ -474,10 +540,11 @@
 
 <script setup lang="ts">
 import { storeToRefs } from "pinia";
+import { useCard } from "../composables/useCard";
 
 const cartStore = useCartStore();
-import { useCard } from "../composables/useCard";
 const { items: cartItems, subtotal } = storeToRefs(cartStore);
+const router = useRouter();
 
 // Redirect if cart is empty
 if (cartItems.value.length === 0) {
@@ -485,6 +552,7 @@ if (cartItems.value.length === 0) {
 }
 
 const step = ref(1);
+const isTermsChecked = ref(false);
 
 const shippingForm = reactive({
   firstName: "",
@@ -531,6 +599,12 @@ const finalTotal = computed(() => subtotal.value + tax.value);
 
 const { formatCreditCard, formatExpiryDate, formatCVV, getCardType } =
   useCard();
+
+const maskedCardNumber = computed(() => {
+  const number = paymentForm.cardNumber || "";
+  const last4 = number.slice(-4);
+  return `**** **** **** ${last4}`;
+});
 
 const validateCardNumber = () => {
   if (!paymentForm.cardNumber) {
@@ -649,6 +723,15 @@ const nextStep = () => {
     step.value++;
   }
 };
+
+const onOrderPlaced = () => {
+  if (!isTermsChecked.value) return;
+  cartStore.clearCart();
+
+  router.push({
+    path: "/",
+  });
+};
 </script>
 
 <style scoped>
@@ -738,33 +821,6 @@ const nextStep = () => {
   margin-top: 2rem;
   padding-top: 2rem;
   border-top: 1px solid var(--border-color);
-}
-
-.incomplete-section {
-  background-color: #fef3c7;
-  border: 1px solid #f59e0b;
-  border-radius: var(--border-radius);
-  padding: 2rem;
-  margin-bottom: 2rem;
-}
-
-.incomplete-message h3 {
-  color: #92400e;
-  margin-bottom: 1rem;
-}
-
-.incomplete-message p {
-  color: #92400e;
-  margin-bottom: 1rem;
-}
-
-.incomplete-message ul {
-  color: #92400e;
-  margin-left: 1.5rem;
-}
-
-.incomplete-message li {
-  margin-bottom: 0.5rem;
 }
 
 .order-summary {
@@ -919,6 +975,169 @@ const nextStep = () => {
   margin-top: 2rem;
   padding-top: 2rem;
   border-top: 1px solid var(--border-color);
+}
+
+.order-review-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.review-items {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Item Review Styles */
+.item-review {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+}
+
+.item-review-image {
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: var(--border-radius);
+  flex-shrink: 0;
+}
+
+.item-review-details {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.item-review-title {
+  font-weight: 500;
+  color: var(--text-color);
+  font-size: 0.875rem;
+}
+
+.item-review-qty {
+  color: var(--text-light);
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.item-review-price {
+  font-weight: 600;
+  color: var(--primary-color);
+  font-size: 0.875rem;
+}
+
+.cart-items {
+  background-color: white;
+  border-radius: var(--border-radius);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.cart-header {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.cart-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.cart-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.cart-item {
+  display: grid;
+  grid-template-columns: 80px 1fr auto auto auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+}
+
+.item-image img {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: var(--border-radius);
+}
+
+.item-details h3 {
+  margin: 0 0 0.25rem 0;
+  font-size: 1rem;
+}
+
+.item-brand {
+  color: var(--text-light);
+  font-size: 0.875rem;
+  margin: 0 0 0.25rem 0;
+}
+
+.item-price {
+  color: var(--primary-color);
+  font-weight: 600;
+  margin: 0;
+}
+
+.item-quantity {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  padding: 0.25rem;
+}
+
+.qty-btn {
+  background: none;
+  border: none;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  font-size: 1rem;
+  color: var(--text-color);
+  transition: background-color 0.2s ease;
+}
+
+.qty-btn:hover {
+  background-color: var(--light-color);
+}
+
+.qty-value {
+  min-width: 30px;
+  text-align: center;
+  font-weight: 500;
+}
+
+.item-total {
+  font-weight: 600;
+  color: var(--primary-color);
+  text-align: right;
+}
+
+.shipping-info-container,
+.review-group,
+.payment-review-container {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.shipping-info {
+  display: flex;
+  justify-content: space-between;
+  margin: 1rem 0;
+}
+
+.review-order-label {
+  color: var(--text-light);
 }
 
 @media (max-width: 768px) {
